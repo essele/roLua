@@ -20,6 +20,8 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
+#include "../platform.h"
+
 
 static int luaB_print (lua_State *L) {
   int n = lua_gettop(L);  /* number of arguments */
@@ -481,7 +483,9 @@ static int luaB_tostring (lua_State *L) {
 }
 
 
-static const luaL_Reg base_funcs[] = {
+//static const luaL_Reg base_funcs[] = {
+extern const luaL_Reg base_funcs[];
+const luaL_Reg base_funcs[] = {
   {"assert", luaB_assert},
   {"collectgarbage", luaB_collectgarbage},
   {"dofile", luaB_dofile},
@@ -513,9 +517,10 @@ static const luaL_Reg base_funcs[] = {
 
 
 LUAMOD_API int luaopen_base (lua_State *L) {
+    
   /* open lib into global table */
   lua_pushglobaltable(L);
-  luaL_setfuncs(L, base_funcs, 0);
+//  luaL_setfuncs(L, base_funcs, 0);
   /* set global _G */
   lua_pushvalue(L, -1);
   lua_setfield(L, -2, LUA_GNAME);
