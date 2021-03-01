@@ -21,6 +21,8 @@
 #include "lstate.h"
 #include "lstring.h"
 
+#include <stdio.h>
+#include "../platform.h"
 
 /*
 ** Maximum size for string table.
@@ -186,6 +188,10 @@ static void growstrtab (lua_State *L, stringtable *tb) {
 ** Checks whether short string exists and reuses it or creates a new one.
 */
 static TString *internshrstr (lua_State *L, const char *str, size_t l) {
+    fprintf(stderr, "internshrstr(%s)\n", str);
+    TString *xx = read_only_string(str, l);
+    if (xx) return xx;
+
   TString *ts;
   global_State *g = G(L);
   stringtable *tb = &g->strt;
@@ -243,14 +249,17 @@ TString *luaS_new (lua_State *L, const char *str) {
   int j;
   TString **p = G(L)->strcache[i];
   for (j = 0; j < STRCACHE_M; j++) {
-    if (strcmp(str, getstr(p[j])) == 0)  /* hit? */
+    if (strcmp(str, getstr(p[j])) == 0)  /* hit? */ {
+        fprintf(stderr, "STRING REUSE [%s]\n", str);
       return p[j];  /* that is it */
+    }
   }
   /* normal route */
   for (j = STRCACHE_M - 1; j > 0; j--)
     p[j] = p[j - 1];  /* move out last element */
   /* new element is first in the list */
   p[0] = luaS_newlstr(L, str, strlen(str));
+    fprintf(stderr, "NEW STRING [%s]\n", str);
   return p[0];
 }
 

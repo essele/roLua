@@ -14,6 +14,7 @@
 
 #include <malloc/malloc.h>
 
+#include <lstring.h>
 
 static void *lee_alloc (void *ud, void *ptr, size_t osize, size_t nsize) {
 
@@ -98,6 +99,100 @@ const Table   realt = {
     .alimit = (sizeof(sample_funcs)/(2*sizeof(void *)))-1,
     .node = (void *)&sample_funcs,
 };
+
+
+//
+// Read-only strings...
+//
+typedef struct roTString {
+    CommonHeader;
+    lu_byte extra;
+    lu_byte shrlen;
+    unsigned int hash;
+    union {
+        size_t lnglen;
+        struct TString *hext;
+    } u;
+    char contents[];
+} roTString;
+
+
+// Build the read only strings....
+
+#define ROSTRING(s, tok) \
+    { .next = NULL, .tt = LUA_VSHRSTR, .marked = 4, \
+        .extra = tok,  \
+        .shrlen = sizeof(s)-1, .contents = s }
+
+#include "ros.h"
+
+// Dummy read-only string (for reserved word)
+/*
+const romTstring teststring = {
+    .next = NULL,
+    .tt = LUA_VSHRSTR,            // variant?
+    .marked = 4,            // don't know why??
+    .extra = 10,         // reserved words? 
+    .shrlen = 4,        // length of short string
+    .contents = "goto",
+};
+const romTstring teststring2 = {
+    .next = NULL,
+    .tt = LUA_VSHRSTR,            // variant?
+    .marked = 0,
+    .extra = 0,         // reserved words? 
+    .shrlen = 5,        // length of short string
+    .contents = "table",
+};
+*/
+
+
+TString *read_only_string(const char *str, size_t len) {
+    char buf[80];
+    strncpy(buf, str, len);
+    buf[len] = 0;
+    fprintf(stderr, "read_only_string(%s) (len=%zu\n", buf, len);
+
+    if (len < MIN_ROSTRING_LEN || len > MAX_ROSTRING_LEN)
+        return NULL;
+
+    fprintf(stderr, "count is %d\n", MAX_ROSTRINGS);
+
+    unsigned int end = MAX_ROSTRINGS-1;     // zero base, and lose the NULL
+    unsigned int start = 0;
+
+    TString *ts;
+
+    while (1) {
+        unsigned int mid = start + ((end-start)/2);
+
+        ts = (TString *)roTStrings[mid];
+        fprintf(stderr, "looking at [%s]\n", ts->contents);
+
+        // Check strings match first, then use length as decider...
+        int cmp = memcmp(ts->contents, str, len);
+        if (cmp == 0) {
+            cmp = (ts->shrlen < len ? -1 : (ts->shrlen > len ? 1 : 0));
+        }
+    
+        if (cmp == 0) {
+            fprintf(stderr, "found [%s]\n", ts->contents);
+            return ts;
+        }
+        if (start == end) break;
+
+        if (cmp < 0) {
+            start = mid+1;
+        } else if (cmp > 0) {
+            end = mid-1;
+        }
+    }
+    // Not found
+    fprintf(stderr, "string not found\n");
+    return NULL;
+}
+
+
 
 /**
  * x86 hacks to simulate the read only stuff....
@@ -285,6 +380,21 @@ int main(int argc, char ** argv) {
     lua_State *L = lua_newstate(lee_alloc, NULL);
 
     fprintf(stderr, " ---- AFTER NEWSTATE ------\n");
+
+
+
+    TString *s = luaS_new(L, "goto");
+    uint8_t *p = (uint8_t *)s;
+    fprintf(stderr, "DUMP(%p) ", p);
+    for (int i=0; i < sizeof(TString)+4; i++) {
+        fprintf(stderr, "%02x ", *(p+i));
+    }
+    fprintf(stderr, "\n");
+    fprintf(stderr, "%08x\n", s->hash);
+//    exit(0);
+
+
+
     luaL_openlibs(L);
     fprintf(stderr, " ---- AFTER OPENLIBS ------\n");
 
@@ -296,7 +406,10 @@ int main(int argc, char ** argv) {
     lua_setglobal(L, "mul");
 
     // Our Lua code, it simply prints a Hello, World message
-    char * code = "collectgarbage('collect');print(collectgarbage('count'));x=mul(7,8);print(x);f={};f.a=1;f.b=2;print(f.a); print(x.joe)";
+    char * code = "collectgarbage('collect');print(collectgarbage('count'));x=mul(7,8);print(x);f={};f.a=1;f.b=2;print(f.a); print(x.joe);"
+//            "::label:: print('hello'); goto label"
+            ;
+        
 
     // Here we load the string and use lua_pcall for run the code
     fprintf(stderr, " ---- BEFORE LOADSTRING ------\n");

@@ -28,4 +28,6 @@ int global_lookup(StkId ra, char *key);
 
 void set_baselib(const luaL_Reg *lib, unsigned int count);
 
+TString *read_only_string(const char *str, size_t len);
+
 #endif
