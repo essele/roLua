@@ -116,36 +116,7 @@ const Table   realt = {
  *==========================================================================
  */
 
-/**
- * Read-only strings... this needs to be redefined so that we can include the
- * full content in the structure in the rom image.
- */
-typedef struct roTString {
-    CommonHeader;
-    lu_byte extra;
-    lu_byte shrlen;
-    unsigned int hash;
-    union {
-        size_t lnglen;
-        struct TString *hext;
-    } u;
-    char contents[];
-} roTString;
-
-/**
- * Our read-only strings are built by a perl script and written into the
- * ros.h file, which we include here.
- */
-#define ROSTRING(s, tok) \
-    { .next = NULL, .tt = LUA_VSHRSTR, .marked = 4, \
-        .extra = tok,  \
-        .shrlen = sizeof(s)-1, .contents = s }
-#define ROFUNC(s, func) \
-    { .next = NULL, .tt = LUA_VSHRSTR, .marked = 4, \
-        .extra = 0, .u.next = (TString *)func, \
-        .shrlen = sizeof(s)-1, .contents = s }
-
-#include "ros.h"
+#include "ro_main.h"
 
 /**
  * This routine looks up a string to see if it's one of our pre-populated

@@ -515,6 +515,8 @@ const luaL_Reg base_funcs[] = {
   {NULL, NULL}
 };
 
+#include "../ro_baselib.h"
+
 
 LUAMOD_API int luaopen_base (lua_State *L) {
     
