@@ -101,9 +101,25 @@ const Table   realt = {
 };
 
 
-//
-// Read-only strings...
-//
+
+
+/*==========================================================================
+ *
+ * We use a rom based read-only string which is a replica of a TString.
+ * This is used for any read only strings (reserved words, and meta stuff)
+ * but also we overload it for the library functions, as they will end up
+ * being strings at some point anyway.
+ *
+ * For a library function we will store the call in the u.hext position, we
+ * then maintain one list for the read_only_string search function, and each
+ * library then has a separate list to search for their specific functions.
+ *==========================================================================
+ */
+
+/**
+ * Read-only strings... this needs to be redefined so that we can include the
+ * full content in the structure in the rom image.
+ */
 typedef struct roTString {
     CommonHeader;
     lu_byte extra;
@@ -116,37 +132,29 @@ typedef struct roTString {
     char contents[];
 } roTString;
 
-
-// Build the read only strings....
-
+/**
+ * Our read-only strings are built by a perl script and written into the
+ * ros.h file, which we include here.
+ */
 #define ROSTRING(s, tok) \
     { .next = NULL, .tt = LUA_VSHRSTR, .marked = 4, \
         .extra = tok,  \
         .shrlen = sizeof(s)-1, .contents = s }
+#define ROFUNC(s, func) \
+    { .next = NULL, .tt = LUA_VSHRSTR, .marked = 4, \
+        .extra = 0, .u.next = (TString *)func, \
+        .shrlen = sizeof(s)-1, .contents = s }
 
 #include "ros.h"
 
-// Dummy read-only string (for reserved word)
-/*
-const romTstring teststring = {
-    .next = NULL,
-    .tt = LUA_VSHRSTR,            // variant?
-    .marked = 4,            // don't know why??
-    .extra = 10,         // reserved words? 
-    .shrlen = 4,        // length of short string
-    .contents = "goto",
-};
-const romTstring teststring2 = {
-    .next = NULL,
-    .tt = LUA_VSHRSTR,            // variant?
-    .marked = 0,
-    .extra = 0,         // reserved words? 
-    .shrlen = 5,        // length of short string
-    .contents = "table",
-};
-*/
-
-
+/**
+ * This routine looks up a string to see if it's one of our pre-populated
+ * read-only strings.
+ *
+ * We use a quick sort to make this a quick as possible, although it may
+ * need some kind of hashing to speed this up further as the numbers
+ * increase.
+ */
 TString *read_only_string(const char *str, size_t len) {
     char buf[80];
     strncpy(buf, str, len);
@@ -166,7 +174,7 @@ TString *read_only_string(const char *str, size_t len) {
     while (1) {
         unsigned int mid = start + ((end-start)/2);
 
-        ts = (TString *)roTStrings[mid];
+        ts = (TString *)ro_tstrings[mid];
         fprintf(stderr, "looking at [%s]\n", ts->contents);
 
         // Check strings match first, then use length as decider...
