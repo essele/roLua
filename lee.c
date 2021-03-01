@@ -41,51 +41,6 @@ static void *lee_alloc (void *ud, void *ptr, size_t osize, size_t nsize) {
 }
 
 
-/*
-
-luaL_Reg        *baselib = NULL;
-extern const luaL_Reg base_funcs[];
-unsigned int    baselib_count;
-unsigned int    baselib_minlen;
-
-void set_baselib(const luaL_Reg *lib, unsigned int count) {
-    baselib = (luaL_Reg *)lib;
-    baselib_count = count;
-    fprintf(stderr, "bqselib set, count=%d\n", count);
-    fprintf(stderr, "lib is %p, base is %p\n", (void *)baselib, (void *)base_funcs);
-}
-
-
-// Search through a luaL_Reg for a given name, but do it as quickly as possible.
-// Performance testing shows this is better on average than a linear search right 
-// down to lists of a couple of items, so not worth optimising any further.
-//
-int qfind(const luaL_Reg *list, unsigned int count, const char *item) {
-    if (count == 0) return -1;
-
-    fprintf(stderr, "count is %d\n", count);
-
-    unsigned int end = count-1;     // zero base, and lose the NULL
-    unsigned int start = 0;
-
-    while (1) {
-        unsigned int mid = start + ((end-start)/2);
-        int cmp = strcmp(list[mid].name, item);
-
-        if (start == end && cmp != 0) {
-            break;
-        }
-        if (cmp < 0) {
-            start = mid+1;
-        } else if (cmp > 0) {
-            end = mid-1;
-        } else {
-            return mid;
-        }
-    }
-    return -1;
-}
-*/
 
 // Dummy set of functions...
 static const luaL_Reg sample_funcs[] = {
@@ -143,8 +98,6 @@ TString *find_in_list(const roTString *list[], size_t size, const char *str, siz
     while (start <= end) {
         unsigned int mid = start + ((end-start)/2);
 
-        fprintf(stderr, "start=%d mid=%d end=%d\n", start, mid, end);
-
         ts = (TString *)list[mid];
         fprintf(stderr, "looking at [%s]\n", ts->contents);
 
@@ -165,13 +118,16 @@ TString *find_in_list(const roTString *list[], size_t size, const char *str, siz
         } else if (cmp > 0) {
             end = mid-1;
         }
-        fprintf(stderr, ">>start=%d mid=%d end=%d\n", start, mid, end);
     }
     // Not found
     fprintf(stderr, "string not found\n");
     return NULL;
 }
 
+/**
+ * Specific lookup for read-only strings (called from internshrstr in
+ * lstring.c)
+ */
 TString *read_only_string(const char *str, size_t len) {
     if (len < MIN_ROSTRING_LEN || len > MAX_ROSTRING_LEN)
         return NULL;
@@ -179,7 +135,10 @@ TString *read_only_string(const char *str, size_t len) {
     return find_in_list(ro_tstrings, MAX_ROSTRINGS, str, len);
 }
 
-
+/**
+ * Lookup for globals (called from lvm.c). We need to search baselib and
+ * then look for specific library tables.
+ */
 int global_lookup(StkId ra, char *key) {
     size_t len = strlen(key);
 
@@ -220,45 +179,13 @@ int is_read_only(void *p) {
     return 0;
 }
 
-/*
-int Xglobal_lookup(StkId ra, char *key) {
-    static int baselib_count = 0;
-    static int baselib_minsize = 99;
-
-    // Phase 1 -- look in the baselibs bit
-    // Build the size the first time...
-    if (!baselib_count) {
-        luaL_Reg *p = (luaL_Reg *)&base_funcs;
-        while (p->name) {
-            int l = strlen(p->name);
-            if (l < baselib_minsize) {
-                baselib_minsize = l;
-            }
-            baselib_count++;
-            p++;
-        }
-    }
-    fprintf(stderr, "looking globally for %s\n", key);
-
-    if (strlen(key) < baselib_minsize) {
-        fprintf (stderr, "key too short\n");
-        return 0;
-    }
-
-    int index = qfind(base_funcs, baselib_count, key);
-    fprintf(stderr, "index is %d\n", index);
-
-    if (index == -1) {
-        return 0;
-    }
-    fprintf(stderr, "pointer is %p\n", (void *)base_funcs[index].func);
-
-    setfvalue(s2v(ra), base_funcs[index].func);
-
-    return 1;
-}
-*/
-
+/**
+ * TODO: this is called when looking up a field within a table, so if the
+ * table is read-only then it's one of our fake ones used for libraries.
+ * 
+ * We need to decode the *list* from the table, and then use the normal
+ * searching function to find the function.
+ */
 // Lookup the field in the table...
 int read_only_lookup(StkId ra, TValue *t, TValue *f) {
     // It needs to be a table...
@@ -416,7 +343,10 @@ int main(int argc, char ** argv) {
 
     // Our Lua code, it simply prints a Hello, World message
     char * code = "collectgarbage('collect');print(collectgarbage('count'));x=mul(7,8);print(x);f={};f.a=1;f.b=2;print(f.a); print(x.joe);"
-//            "::label:: print('hello'); goto label"
+            "for i=1,10 do print('hello') end;"
+            "x=nil; f=nil;"
+            "collectgarbage('collect');"
+            "print(collectgarbage('count'));"
             ;
         
 
