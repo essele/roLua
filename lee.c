@@ -41,7 +41,7 @@ static void *lee_alloc (void *ud, void *ptr, size_t osize, size_t nsize) {
 }
 
 
-
+/*
 
 luaL_Reg        *baselib = NULL;
 extern const luaL_Reg base_funcs[];
@@ -85,6 +85,7 @@ int qfind(const luaL_Reg *list, unsigned int count, const char *item) {
     }
     return -1;
 }
+*/
 
 // Dummy set of functions...
 static const luaL_Reg sample_funcs[] = {
@@ -126,26 +127,25 @@ const Table   realt = {
  * need some kind of hashing to speed this up further as the numbers
  * increase.
  */
-TString *read_only_string(const char *str, size_t len) {
+TString *find_in_list(const roTString *list[], size_t size, const char *str, size_t len) {
     char buf[80];
     strncpy(buf, str, len);
     buf[len] = 0;
     fprintf(stderr, "read_only_string(%s) (len=%zu\n", buf, len);
 
-    if (len < MIN_ROSTRING_LEN || len > MAX_ROSTRING_LEN)
-        return NULL;
+    fprintf(stderr, "count is %zu\n", size);
 
-    fprintf(stderr, "count is %d\n", MAX_ROSTRINGS);
-
-    unsigned int end = MAX_ROSTRINGS-1;     // zero base, and lose the NULL
+    unsigned int end = size-1;     // zero base, and lose the NULL
     unsigned int start = 0;
 
     TString *ts;
 
-    while (1) {
+    while (start <= end) {
         unsigned int mid = start + ((end-start)/2);
 
-        ts = (TString *)ro_tstrings[mid];
+        fprintf(stderr, "start=%d mid=%d end=%d\n", start, mid, end);
+
+        ts = (TString *)list[mid];
         fprintf(stderr, "looking at [%s]\n", ts->contents);
 
         // Check strings match first, then use length as decider...
@@ -165,11 +165,39 @@ TString *read_only_string(const char *str, size_t len) {
         } else if (cmp > 0) {
             end = mid-1;
         }
+        fprintf(stderr, ">>start=%d mid=%d end=%d\n", start, mid, end);
     }
     // Not found
     fprintf(stderr, "string not found\n");
     return NULL;
 }
+
+TString *read_only_string(const char *str, size_t len) {
+    if (len < MIN_ROSTRING_LEN || len > MAX_ROSTRING_LEN)
+        return NULL;
+
+    return find_in_list(ro_tstrings, MAX_ROSTRINGS, str, len);
+}
+
+
+int global_lookup(StkId ra, char *key) {
+    size_t len = strlen(key);
+
+    if (len < MIN_BASELIB_LEN || len > MAX_BASELIB_LEN)
+        return 0;
+
+    TString *ts = find_in_list(ro_baselib, MAX_BASELIB, key, len);
+    if (!ts)
+        return 0;
+
+    void *func = (void *)ts->u.hnext;
+
+    fprintf(stderr, "pointer is %p\n", func);
+    setfvalue(s2v(ra), func);
+    return 1;
+}
+
+
 
 
 
@@ -192,7 +220,8 @@ int is_read_only(void *p) {
     return 0;
 }
 
-int global_lookup(StkId ra, char *key) {
+/*
+int Xglobal_lookup(StkId ra, char *key) {
     static int baselib_count = 0;
     static int baselib_minsize = 99;
 
@@ -228,6 +257,7 @@ int global_lookup(StkId ra, char *key) {
 
     return 1;
 }
+*/
 
 // Lookup the field in the table...
 int read_only_lookup(StkId ra, TValue *t, TValue *f) {
@@ -256,7 +286,8 @@ int read_only_lookup(StkId ra, TValue *t, TValue *f) {
     // Now see if we can find the key...
     char *key = svalue(f);
     fprintf(stderr, "looking for key [%s]\n", key);
-    int index = qfind(reg, count, key);
+    //int index = qfind(reg, count, key);
+    int index = 0;
     
     fprintf(stderr, "index is %d\n", index); 
    
@@ -271,7 +302,6 @@ int read_only_lookup(StkId ra, TValue *t, TValue *f) {
 
     return 1; 
 }
-
 
 
 
