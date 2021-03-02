@@ -25,6 +25,7 @@
 #undef PI
 #define PI	(l_mathop(3.141592653589793238462643383279502884))
 
+#include "../platform.h"
 
 static int math_abs (lua_State *L) {
   if (lua_isinteger(L, 1)) {
@@ -743,11 +744,13 @@ static const luaL_Reg mathlib[] = {
   {NULL, NULL}
 };
 
+//#include "../ro_mathlib.h"
 
 /*
 ** Open math library
 */
 LUAMOD_API int luaopen_math (lua_State *L) {
+/*
   luaL_newlib(L, mathlib);
   lua_pushnumber(L, PI);
   lua_setfield(L, -2, "pi");
@@ -758,6 +761,7 @@ LUAMOD_API int luaopen_math (lua_State *L) {
   lua_pushinteger(L, LUA_MININTEGER);
   lua_setfield(L, -2, "mininteger");
   setrandfunc(L);
+*/
   return 1;
 }
 
