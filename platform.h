@@ -25,8 +25,14 @@ int is_read_only(void *p);
 /**
  * Read-only strings... this needs to be redefined so that we can include the
  * full content in the structure in the rom image.
+ *
+ * We overload this to support pointing to both functions and tables for the 
+ * global search use case (hext is the pointer, and marked is the type.)
+ *
+ * We can't just point to an object since a C function is just a pointer and
+ * there's no tt value we can lookup.
  */
-typedef struct roTString {
+typedef struct ro_TString {
     CommonHeader;
     lu_byte extra;
     lu_byte shrlen;
@@ -36,20 +42,41 @@ typedef struct roTString {
         struct TString *hext;
     } u;
     char contents[];
-} roTString;
+} ro_TString;
+
+
+/**
+ * Some macros to provide our overloaded access to the TString structure
+ */
+#define ro_has_func(o)  (o->marked == LUA_VCCL)
+#define ro_func(o)      ((void *)((o)->u.hnext))
+#define ro_has_table(o) (o->marked == LUA_TTABLE)
+#define ro_table(o)     ((Table *)((o)->u.hnext))
 
 /**
  * Our read-only strings are built by a perl script and written into the
  * ro_main.h file, which we include here.
  */
 #define ROSTRING(s, tok) \
-    { .next = NULL, .tt = LUA_VSHRSTR, .marked = 4, \
+    { .next = NULL, .tt = LUA_VSHRSTR, .marked = 0, \
         .extra = tok,  \
         .shrlen = sizeof(s)-1, .contents = s }
 #define ROFUNC(s, func) \
-    { .next = NULL, .tt = LUA_VSHRSTR, .marked = 4, \
+    { .next = NULL, .tt = LUA_VSHRSTR, .marked = LUA_VCCL, \
         .extra = 0, .u.hext = (TString *)func, \
         .shrlen = sizeof(s)-1, .contents = s }
+#define ROTABLE(s, table) \
+    { .next = NULL, .tt = LUA_VSHRSTR, .marked = LUA_TTABLE, \
+        .extra = 0, .u.hext = (TString *)table, \
+        .shrlen = sizeof(s)-1, .contents = s }
+
+/**
+ * Our read-only table is a standard table, but we re-use the node pointer
+ * to point to a list of functions.
+ */
+#define DEFTABLE(name,list,count) \
+    const Table name = { \
+        .flags = 0, .alimit = count, .node = (void *)list };
 
 
 int read_only_lookup(StkId ra, TValue *t, TValue *f);

@@ -50,6 +50,24 @@ sub getreg {
 }
 
 
+
+
+open(FH_MAIN, ">ro_main.h") or die $!;
+sub writelib {
+    my $source = shift @_;
+    my $match = shift @_;
+    my $name = shift @_;
+
+    open(FH_LIB, ">ro_$name.h") or die $!;
+}
+
+
+writelib("src/lmathlib.c", "static const luaL_Reg mathlib\\[\\] =", "mathlib");
+
+
+
+exit(0);
+
 #
 # Pull the tokens from llex.c
 #
@@ -89,7 +107,7 @@ print FH_MAIN "//\n";
 print FH_MAIN "// Tokens from llex.c\n";
 print FH_MAIN "//\n";
 foreach $i (@toks) {
-    printf(FH_MAIN "static const roTString ros%03d = ROSTRING(\"%s\", %d);\n", $n, $i, $n+1 );
+    printf(FH_MAIN "static const ro_TString ros%03d = ROSTRING(\"%s\", %d);\n", $n, $i, $n+1 );
     $map{$i} = $n;
     $n++
 }
@@ -97,7 +115,7 @@ print FH_MAIN "//\n";
 print FH_MAIN "// Metamethods from ltm.c\n";
 print FH_MAIN "//\n";
 foreach $i (@mm) {
-    printf(FH_MAIN "static const roTString ros%03d = ROSTRING(\"%s\", 0);\n", $n, $i );
+    printf(FH_MAIN "static const ro_TString ros%03d = ROSTRING(\"%s\", 0);\n", $n, $i );
     $map{$i} = $n;
     $n++
 }
@@ -119,25 +137,41 @@ print FH_MAIN "//\n";
 print FH_MAIN "// Functions from lbaselib.c\n";
 print FH_MAIN "//\n";
 foreach $key (sort keys %baselib) {
-    printf(FH_BASELIB "extern const roTString ros%03d;\n", $n);
-    printf(FH_BASELIB "const roTString ros%03d = ROFUNC(\"%s\", %s);\n", $n, $key, $baselib{$key} );
-    printf(FH_MAIN "extern const roTString ros%03d;\n", $n);
+    printf(FH_BASELIB "extern const ro_TString ros%03d;\n", $n);
+    printf(FH_BASELIB "const ro_TString ros%03d = ROFUNC(\"%s\", %s);\n", $n, $key, $baselib{$key} );
+    printf(FH_MAIN "extern const ro_TString ros%03d;\n", $n);
     # Store the number for the lookup table...
     $map{$key} = $n;
     $n++;
 }
 
-#
-#
-#
 
+#
+# Custom stuff for testing
+#
+my %tables = (
+    "fred" => "myTable",
+    "math" => "mathTable",
+);
+print FH_MAIN "\n";
+print FH_MAIN "//\n";
+print FH_MAIN "// Tables for libraries\n";
+print FH_MAIN "//\n";
+print FH_MAIN "\n";
+foreach $i (keys %tables) {
+    printf(FH_MAIN "DEFTABLE(ros%03d_tab, ro_list_%s, %d);\n", $n, $i, 25);
+    printf(FH_MAIN "static const ro_TString ros%03d = ROTABLE(\"%s\", &ros%03d_tab);\n", $n, $i, $n );
+    $map{$i} = $n;
+    $n++
+}
+print FH_MAIN "\n";
 
 #
 # Decided not to use buckets, as a quick-find algorithm will find the right string
 # with 5 compares maximum and that's much simpler than anything else, we just need
 # to ensure the list is sorted.
 #
-my @all = sort (@toks, @mm, keys %baselib);
+my @all = sort (@toks, @mm, keys %baselib, keys %tables);
 
 #
 # Now the list... (TODO: quick access)
@@ -145,7 +179,7 @@ my @all = sort (@toks, @mm, keys %baselib);
 print FH_MAIN "//\n";
 print FH_MAIN "// The overall list of read only strings, sorted for quck-search\n";
 print FH_MAIN "//\n";
-print FH_MAIN "static const roTString *ro_tstrings[] = {\n";
+print FH_MAIN "static const ro_TString *ro_tstrings[] = {\n";
 
 my $minlen = 999;
 my $maxlen = 0;
@@ -171,14 +205,14 @@ printf(FH_MAIN "#define MAX_ROSTRING_LEN (%d)\n", $maxlen);
 
 print(FH_MAIN "\n");
 print(FH_MAIN "//\n");
-print(FH_MAIN "// Specific list for lbaselib functions\n");
+print(FH_MAIN "// Specific list for lbaselib functions (plus lib tables)\n");
 print(FH_MAIN "//\n");
-print FH_MAIN "static const roTString *ro_baselib[] = {\n";
+print FH_MAIN "static const ro_TString *ro_baselib[] = {\n";
 
 $minlen = 999;
 $maxlen = 0;
 $n = 0;
-foreach $key (sort keys %baselib) {
+foreach $key (sort (keys %baselib, keys %tables)) {
     my $i = $map{$key};
     my $id = sprintf("%03d", $i);
 

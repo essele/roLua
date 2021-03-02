@@ -55,8 +55,12 @@ const Table   realt = {
     .alimit = (sizeof(sample_funcs)/(2*sizeof(void *)))-1,
     .node = (void *)&sample_funcs,
 };
-
-
+// Dummy read-only table...
+const Table   myTable = {
+    .flags = 5,
+    .alimit = (sizeof(sample_funcs)/(2*sizeof(void *)))-1,
+    .node = (void *)&sample_funcs,
+};
 
 
 /*==========================================================================
@@ -82,16 +86,15 @@ const Table   realt = {
  * need some kind of hashing to speed this up further as the numbers
  * increase.
  */
-TString *find_in_list(const roTString *list[], size_t size, const char *str, size_t len) {
+TString *find_in_list(const ro_TString *list[], unsigned int start,
+                                unsigned int end, const char *str, size_t len) {
     char buf[80];
     strncpy(buf, str, len);
     buf[len] = 0;
     fprintf(stderr, "read_only_string(%s) (len=%zu\n", buf, len);
 
-    fprintf(stderr, "count is %zu\n", size);
-
-    unsigned int end = size-1;     // zero base, and lose the NULL
-    unsigned int start = 0;
+//    unsigned int end = size-1;     // zero base, and lose the NULL
+////    unsigned int start = 0;
 
     TString *ts;
 
@@ -132,7 +135,7 @@ TString *read_only_string(const char *str, size_t len) {
     if (len < MIN_ROSTRING_LEN || len > MAX_ROSTRING_LEN)
         return NULL;
 
-    return find_in_list(ro_tstrings, MAX_ROSTRINGS, str, len);
+    return find_in_list(ro_tstrings, 0, MAX_ROSTRINGS-1, str, len);
 }
 
 /**
@@ -145,14 +148,20 @@ int global_lookup(StkId ra, char *key) {
     if (len < MIN_BASELIB_LEN || len > MAX_BASELIB_LEN)
         return 0;
 
-    TString *ts = find_in_list(ro_baselib, MAX_BASELIB, key, len);
+    TString *ts = find_in_list(ro_baselib, 0, MAX_BASELIB-1, key, len);
     if (!ts)
         return 0;
 
-    void *func = (void *)ts->u.hnext;
-
-    fprintf(stderr, "pointer is %p\n", func);
-    setfvalue(s2v(ra), func);
+    if (ro_has_func(ts)) {
+        setfvalue(s2v(ra), ro_func(ts));
+        fprintf(stderr, "returning function\n");
+    } else if (ro_has_table(ts)) {
+        // sethvalue() (our own version)
+        val_(s2v(ra)).gc = obj2gco(ro_table(ts));
+        settt_(s2v(ra), ctb(LUA_VTABLE));
+        //sethvalue(s2v(ra), ro_table(ts));
+        fprintf(stderr, "returning table\n");
+    }
     return 1;
 }
 
@@ -342,11 +351,13 @@ int main(int argc, char ** argv) {
     lua_setglobal(L, "mul");
 
     // Our Lua code, it simply prints a Hello, World message
-    char * code = "collectgarbage('collect');print(collectgarbage('count'));x=mul(7,8);print(x);f={};f.a=1;f.b=2;print(f.a); print(x.joe);"
+    char * code = 
+            "collectgarbage('collect');print(collectgarbage('count'));x=mul(7,8);print(x);f={};f.a=1;f.b=2;print(f.a); print(x.joe);"
             "for i=1,10 do print('hello') end;"
             "x=nil; f=nil;"
             "collectgarbage('collect');"
             "print(collectgarbage('count'));"
+            "print(fred)"
             ;
         
 
