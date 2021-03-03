@@ -744,7 +744,7 @@ static const luaL_Reg mathlib[] = {
   {NULL, NULL}
 };
 
-//#include "../ro_mathlib.h"
+#include "../ro_mathlib.h"
 
 /*
 ** Open math library

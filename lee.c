@@ -139,6 +139,31 @@ TString *read_only_string(const char *str, size_t len) {
 }
 
 /**
+ * Process the data hidden in the TString and set the value as required
+ */
+void prepare_return(StkId ra, TString *ts) {
+    if (ro_has_func(ts)) {
+        setfvalue(s2v(ra), ro_func(ts));
+        fprintf(stderr, "returning function\n");
+    } else if (ro_has_table(ts)) {
+        // sethvalue() (our own version)
+        val_(s2v(ra)).gc = obj2gco(ro_table(ts));
+        settt_(s2v(ra), ctb(LUA_VTABLE));
+        //sethvalue(s2v(ra), ro_table(ts));
+        fprintf(stderr, "returning table\n");
+    } else if (ro_has_float(ts)) {
+        setfltvalue(s2v(ra), ro_float(ts));
+        fprintf(stderr, "returning float\n");
+    } else if (ro_has_int(ts)) {
+        setivalue(s2v(ra), ro_int(ts));
+        fprintf(stderr, "returning int\n");
+    } else {
+        fprintf(stderr, "not found\n");
+        setnilvalue(s2v(ra));
+    }
+}
+
+/**
  * Lookup for globals (called from lvm.c). We need to search baselib and
  * then look for specific library tables.
  */
@@ -152,6 +177,11 @@ int global_lookup(StkId ra, char *key) {
     if (!ts)
         return 0;
 
+    fprintf(stderr, "market is %d\n", ts->marked); 
+
+    prepare_return(ra, ts);
+    return 1;
+
     if (ro_has_func(ts)) {
         setfvalue(s2v(ra), ro_func(ts));
         fprintf(stderr, "returning function\n");
@@ -161,6 +191,9 @@ int global_lookup(StkId ra, char *key) {
         settt_(s2v(ra), ctb(LUA_VTABLE));
         //sethvalue(s2v(ra), ro_table(ts));
         fprintf(stderr, "returning table\n");
+    } else if (ro_has_float(ts)) {
+        setfltvalue(s2v(ra), ro_float(ts));
+        fprintf(stderr, "returning float\n");
     }
     return 1;
 }
@@ -204,10 +237,13 @@ int read_only_lookup(StkId ra, TValue *t, TValue *f) {
 
     fprintf(stderr, "table lookup key [%s]\n", svalue(f));
     // It needs to be read only...
-    return 0;
-    if (!is_read_only(table)) return 0;
+    //if (!is_read_only(table)) return 0;
     // TODO: see if we ever get a global table here
-//    if (table != &ro_table_mathlib) return 0;
+
+    // For a normal table the gclist will have a value in, so if it's
+    // zero then it must be a read-only table
+    if (table->gclist) return 0;
+
     fprintf(stderr, "read only table found\n");
 
     // Key must be a string... otherwise nil return
@@ -236,6 +272,8 @@ int read_only_lookup(StkId ra, TValue *t, TValue *f) {
         setnilvalue(s2v(ra));
         return 1;
     }
+    prepare_return(ra, ts);
+    return 1;
     setfvalue(s2v(ra), ro_func(ts));
     fprintf(stderr, "returning function\n");
     return 1;
@@ -360,21 +398,30 @@ int main(int argc, char ** argv) {
     fprintf(stderr, " ---- AFTER OPENLIBS ------\n");
 
     // Push the pointer to function
-    lua_pushcfunction(L, multiplication);
+//    lua_pushcfunction(L, multiplication);
 
     // Get the value on top of the stack
     // and set as a global, in this case is the function
-    lua_setglobal(L, "mul");
+//    lua_setglobal(L, "mul");
 
     // Our Lua code, it simply prints a Hello, World message
     char * code = 
-            "collectgarbage('collect');print(collectgarbage('count'));x=mul(7,8);print(x);f={};f.a=1;f.b=2;print(f.a); print(x.joe);"
+//            "print(collectgarbage('count'));"
+//            "collectgarbage('collect');"
+//            "print(collectgarbage('count'));"
+//            "x=mul(7,8);print(x);f={};f.a=1;f.b=2;print(f.a); print(x.joe);"
+//            "f={};f.a=1;f.b=2;"
+//            "print(f.a);"
 //            "for i=1,10 do print('hello') end;"
 //            "print(math);"
 //            "print(math.floor(4.567));"
-            "x=nil; f=nil;"
-            "collectgarbage('collect');"
-            "print(collectgarbage('count'));"
+//            "x=nil; f=nil;"
+//            "collectgarbage('collect');"
+//            "print(collectgarbage('count'));"
+//            "collectgarbage('collect');"
+//            "print(collectgarbage('count'));"
+            "print(math.huge);"
+            "print(math.maxinteger);"
             ;
         
 

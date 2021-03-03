@@ -52,22 +52,18 @@ typedef struct ro_TString {
 #define ro_func(o)      ((void *)((o)->u.hnext))
 #define ro_has_table(o) (o->marked == LUA_TTABLE)
 #define ro_table(o)     ((Table *)((o)->u.hnext))
+#define ro_has_float(o) (o->marked == LUA_VNUMFLT)
+#define ro_float(o)     (*(lua_Number *)((o)->u.hnext))
+#define ro_has_int(o)   (o->marked == LUA_VNUMINT)
+#define ro_int(o)       ((LUA_INTEGER)((o)->u.hnext))
 
 /**
  * Our read-only strings are built by a perl script and written into the
  * ro_main.h file, which we include here.
  */
-#define ROSTRING(s, tok) \
-    { .next = NULL, .tt = LUA_VSHRSTR, .marked = 0, \
-        .extra = tok,  \
-        .shrlen = sizeof(s)-1, .contents = s }
-#define ROFUNC(s, func) \
-    { .next = NULL, .tt = LUA_VSHRSTR, .marked = LUA_VCCL, \
-        .extra = 0, .u.hext = (TString *)func, \
-        .shrlen = sizeof(s)-1, .contents = s }
-#define ROTABLE(s, table) \
-    { .next = NULL, .tt = LUA_VSHRSTR, .marked = LUA_TTABLE, \
-        .extra = 0, .u.hext = (TString *)table, \
+#define ROSTRING(s, tok, ttt, item) \
+    { .next = NULL, .tt = LUA_VSHRSTR, .marked = ttt, \
+        .extra = tok, .u.hext = (TString *)item, \
         .shrlen = sizeof(s)-1, .contents = s }
 
 /**
