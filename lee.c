@@ -42,27 +42,6 @@ static void *lee_alloc (void *ud, void *ptr, size_t osize, size_t nsize) {
 
 
 
-// Dummy set of functions...
-static const luaL_Reg sample_funcs[] = {
-    { "fred", (void *)100 },
-    { "joe", (void *)200 },
-    { NULL, NULL },
-};
-
-// Dummy read-only table...
-const Table   realt = {
-    .flags = 5,
-    .alimit = (sizeof(sample_funcs)/(2*sizeof(void *)))-1,
-    .node = (void *)&sample_funcs,
-};
-// Dummy read-only table...
-const Table   myTable = {
-    .flags = 5,
-    .alimit = (sizeof(sample_funcs)/(2*sizeof(void *)))-1,
-    .node = (void *)&sample_funcs,
-};
-
-
 /*==========================================================================
  *
  * We use a rom based read-only string which is a replica of a TString.
@@ -127,6 +106,12 @@ TString *find_in_list(const ro_TString *list[], int start,
     return NULL;
 }
 
+static inline int strhash(const char *p, int len) {
+    int h = 0;
+    while (len--) { h += *p++; }
+    return (h & (BUCKETS_ROSTRINGS-1));
+}
+
 /**
  * Specific lookup for read-only strings (called from internshrstr in
  * lstring.c)
@@ -134,6 +119,22 @@ TString *find_in_list(const ro_TString *list[], int start,
 TString *read_only_string(const char *str, size_t len) {
     if (len < MIN_ROSTRING_LEN || len > MAX_ROSTRING_LEN)
         return NULL;
+
+    // if it's a number it's not for us...
+    if (*str >= '0' && *str <= '9')
+        return 0;
+
+    // Now work out the hash value
+    int hash = strhash(str, len);
+    
+    const ro_hashrange *range = &ro_hash_lookup[hash];
+    // Do we match a valid hash?
+    if (range->start == 255)
+        return 0;
+
+    fprintf(stderr, "hash is %d (%d - %d)\n", hash, range->start, range->end);
+
+    return find_in_list(ro_tstrings, range->start, range->end, str, len);
 
     return find_in_list(ro_tstrings, 0, MAX_ROSTRINGS-1, str, len);
 }
@@ -168,8 +169,9 @@ void prepare_return(StkId ra, TString *ts) {
  * then look for specific library tables.
  */
 int global_lookup(StkId ra, char *key) {
-    size_t len = strlen(key);
 
+    // too short or too long...
+    size_t len = strlen(key);
     if (len < MIN_BASELIB_LEN || len > MAX_BASELIB_LEN)
         return 0;
 
@@ -177,49 +179,15 @@ int global_lookup(StkId ra, char *key) {
     if (!ts)
         return 0;
 
-    fprintf(stderr, "market is %d\n", ts->marked); 
+    fprintf(stderr, "hash is %d\n", ts->hash); 
 
     prepare_return(ra, ts);
     return 1;
-
-    if (ro_has_func(ts)) {
-        setfvalue(s2v(ra), ro_func(ts));
-        fprintf(stderr, "returning function\n");
-    } else if (ro_has_table(ts)) {
-        // sethvalue() (our own version)
-        val_(s2v(ra)).gc = obj2gco(ro_table(ts));
-        settt_(s2v(ra), ctb(LUA_VTABLE));
-        //sethvalue(s2v(ra), ro_table(ts));
-        fprintf(stderr, "returning table\n");
-    } else if (ro_has_float(ts)) {
-        setfltvalue(s2v(ra), ro_float(ts));
-        fprintf(stderr, "returning float\n");
-    }
-    return 1;
 }
 
 
 
 
-
-/**
- * x86 hacks to simulate the read only stuff....
- */
-void *read_only_list[] = {
-    (void *)&realt,
-    NULL,
-};
-
-int is_read_only(void *p) {
-    void **list = read_only_list;
-    
-    while (*list) {
-        if (*list++ == p) {
-            return 1;
-        }
-    }
-    return 0;
-}
 
 /**
  * TODO: this is called when looking up a field within a table, so if the
@@ -280,93 +248,6 @@ int read_only_lookup(StkId ra, TValue *t, TValue *f) {
 
     
 
-    int index = 0;
-    
-    fprintf(stderr, "index is %d\n", index); 
-   
-    if (index == -1) {
-    } 
-    int value = (int)sample_funcs[index].func;
-    
-    setivalue(s2v(ra), value);
-
-    return 1; 
-}
-
-
-
-static const luaL_Reg some_funcs[] = {
-    { "abc", NULL },
-    { "bbc", NULL },
-    { "cbc", NULL },
-    { "dsdfsdbc", NULL },
-    { "ebc", NULL },
-    { "fbc", NULL },
-    { "gbc", NULL },
-    { "hbc", NULL },
-    { "ibc", NULL },
-    { "jbc", NULL },
-    { "kbc", NULL },
-    { "lbc", NULL },
-    { "mbc", NULL },
-    { "nbc", NULL },
-    { NULL, NULL }
-};
-
-// TWO MAIN HOOKS INTO LUA
-//
-// 1. When looking up a table that is the global table, we need to interject
-//    all of the global functions and also the sub-tables for the libraries
-//
-// 2. When looking up a read-only table (sub-table) for the libraries
-//
-
-
-
-// Define our function, we have to follow the protocol of lua_CFunction that is 
-// typedef int (*lua_CFunction) (lua_State *L);
-int blah(lua_State *L) {
-    fprintf(stderr, "blah addr=%p\n", (void *)blah);
-
-    // Check first argument is integer and return the value
-    int a = luaL_checkinteger(L, 1);
-
-    // Check second argument is integer and return the value
-    int b = luaL_checkinteger(L, 2);
-
-    // multiply and store the result inside a type lua_Integer
-    lua_Integer c = a * b;
-
-    // push the result to Lua
-    lua_pushinteger(L, c);
-
-    // exit code, successful = 1, otherwise error.
-    return 1; // Successful
-}
-
-int multiplication(lua_State *L) {
-    fprintf(stderr, "mul addr=%p\n", (void *)multiplication);
-
-    // Check first argument is integer and return the value
-    int a = luaL_checkinteger(L, 1);
-
-    // Check second argument is integer and return the value
-    int b = luaL_checkinteger(L, 2);
-
-    // multiply and store the result inside a type lua_Integer
-    lua_Integer c = a * b;
-  
-    Table *t = (Table *)&realt; 
-
-    sethvalue(L, s2v(L->top), t);
-    api_incr_top(L);
-
-    // push the result to Lua
-//    lua_pushinteger(L, c);
-//    lua_pushcfunction(L, blah);
-
-    // exit code, successful = 1, otherwise error.
-    return 1; // Successful
 }
 
 
@@ -412,14 +293,14 @@ int main(int argc, char ** argv) {
 //            "x=mul(7,8);print(x);f={};f.a=1;f.b=2;print(f.a); print(x.joe);"
 //            "f={};f.a=1;f.b=2;"
 //            "print(f.a);"
-//            "for i=1,10 do print('hello') end;"
-//            "print(math);"
-//            "print(math.floor(4.567));"
+            "for i=1,10 do print('hello') end;"
+            "print(math.pi);"
+            "print(math.floor(4.567));"
 //            "x=nil; f=nil;"
 //            "collectgarbage('collect');"
 //            "print(collectgarbage('count'));"
-//            "collectgarbage('collect');"
-//            "print(collectgarbage('count'));"
+            "collectgarbage('collect');"
+            "print(collectgarbage('count'));"
             "print(math.huge);"
             "print(math.maxinteger);"
             ;

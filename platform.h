@@ -44,17 +44,24 @@ typedef struct ro_TString {
     char contents[];
 } ro_TString;
 
+/**
+ * Helper type for the hash lookup table
+ */
+typedef struct ro_hashrange {
+    int start;
+    int end;
+} ro_hashrange;
 
 /**
  * Some macros to provide our overloaded access to the TString structure
  */
-#define ro_has_func(o)  (o->marked == LUA_VCCL)
+#define ro_has_func(o)  (o->hash == LUA_VCCL)
 #define ro_func(o)      ((void *)((o)->u.hnext))
-#define ro_has_table(o) (o->marked == LUA_TTABLE)
+#define ro_has_table(o) (o->hash == LUA_TTABLE)
 #define ro_table(o)     ((Table *)((o)->u.hnext))
-#define ro_has_float(o) (o->marked == LUA_VNUMFLT)
+#define ro_has_float(o) (o->hash == LUA_VNUMFLT)
 #define ro_float(o)     (*(lua_Number *)((o)->u.hnext))
-#define ro_has_int(o)   (o->marked == LUA_VNUMINT)
+#define ro_has_int(o)   (o->hash == LUA_VNUMINT)
 #define ro_int(o)       ((LUA_INTEGER)((o)->u.hnext))
 
 /**
@@ -62,7 +69,7 @@ typedef struct ro_TString {
  * ro_main.h file, which we include here.
  */
 #define ROSTRING(s, tok, ttt, item) \
-    { .next = NULL, .tt = LUA_VSHRSTR, .marked = ttt, \
+    { .next = NULL, .tt = LUA_VSHRSTR, .hash = ttt, \
         .extra = tok, .u.hext = (TString *)item, \
         .shrlen = sizeof(s)-1, .contents = s }
 
