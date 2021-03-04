@@ -19,6 +19,7 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
+#include "../platform.h"
 
 /*
 ** The hook table at registry[HOOKKEY] maps threads to their current
@@ -452,7 +453,7 @@ static int db_setcstacklimit (lua_State *L) {
   return 1;
 }
 
-
+#ifndef RO_LUA
 static const luaL_Reg dblib[] = {
   {"debug", db_debug},
   {"getuservalue", db_getuservalue},
@@ -479,4 +480,7 @@ LUAMOD_API int luaopen_debug (lua_State *L) {
   luaL_newlib(L, dblib);
   return 1;
 }
+#else
+#include "../ro_dblib.h"
+#endif
 

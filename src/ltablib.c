@@ -19,6 +19,7 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
+#include "../platform.h"
 
 /*
 ** Operations that an object must define to mimic a table
@@ -408,7 +409,7 @@ static int sort (lua_State *L) {
 
 /* }====================================================== */
 
-
+#ifndef RO_LUA
 static const luaL_Reg tab_funcs[] = {
   {"concat", tconcat},
   {"insert", tinsert},
@@ -420,9 +421,11 @@ static const luaL_Reg tab_funcs[] = {
   {NULL, NULL}
 };
 
-
 LUAMOD_API int luaopen_table (lua_State *L) {
   luaL_newlib(L, tab_funcs);
   return 1;
 }
+#else
+#include "../ro_tablib.h"
+#endif
 

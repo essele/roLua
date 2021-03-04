@@ -46,6 +46,28 @@ PROCESS_LIB();
 LIB_TABLE();
 
 #
+# ltablib
+#
+READ_LIB("tablib", "src/ltablib.c", "tab_funcs[]");
+PROCESS_LIB();
+LIB_TABLE();
+
+#
+# lutf8lib
+#
+READ_LIB("utf8lib", "src/lutf8lib.c", "funcs[]");
+ADD_STRING("charpattern", UTF8PATT);
+PROCESS_LIB();
+LIB_TABLE();
+
+#
+# ldblib
+#
+READ_LIB("dblib", "src/ldblib.c", "dblib[]");
+PROCESS_LIB();
+LIB_TABLE();
+
+#
 # lbaselib is mostly handled as normal, the _G entry will not be
 # processed so will need to be added in initalisation if needed.
 #
@@ -54,6 +76,9 @@ ADD_STRING("_VERSION", LUA_VERSION);
 ADD_GLOBAL_TABLE("math", "mathlib");
 ADD_GLOBAL_TABLE("string", "strlib");
 ADD_GLOBAL_TABLE("coroutine", "corolib");
+ADD_GLOBAL_TABLE("table", "tablib");
+ADD_GLOBAL_TABLE("utf8", "utf8lib");
+ADD_GLOBAL_TABLE("debug", "dblib");
 PROCESS_FINAL();
 
 
