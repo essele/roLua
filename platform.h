@@ -16,6 +16,11 @@
 #include "src/lauxlib.h"
 
 /*
+ * Define RO_LUA in order to have low memory usage
+ */
+#define RO_LUA
+
+/*
  * Hack for x86 since we don't actually have any read-only memory
  */
 
@@ -55,13 +60,10 @@ typedef struct ro_range {
 /**
  * Some macros to provide our overloaded access to the TString structure
  */
-#define ro_has_func(o)  (o->hash == LUA_VCCL)
 #define ro_func(o)      ((void *)((o)->u.hnext))
-#define ro_has_table(o) (o->hash == LUA_TTABLE)
 #define ro_table(o)     ((Table *)((o)->u.hnext))
-#define ro_has_float(o) (o->hash == LUA_VNUMFLT)
 #define ro_float(o)     (*(lua_Number *)((o)->u.hnext))
-#define ro_has_int(o)   (o->hash == LUA_VNUMINT)
+#define ro_string(o)    ((TString *)((o)->u.hnext))
 #define ro_int(o)       ((LUA_INTEGER)((o)->u.hnext))
 
 /**

@@ -700,8 +700,7 @@ static int math_log10 (lua_State *L) {
 #endif
 /* }================================================================== */
 
-
-
+#ifndef RO_LUA
 static const luaL_Reg mathlib[] = {
   {"abs",   math_abs},
   {"acos",  math_acos},
@@ -744,13 +743,10 @@ static const luaL_Reg mathlib[] = {
   {NULL, NULL}
 };
 
-#include "../ro_mathlib.h"
-
 /*
 ** Open math library
 */
 LUAMOD_API int luaopen_math (lua_State *L) {
-/*
   luaL_newlib(L, mathlib);
   lua_pushnumber(L, PI);
   lua_setfield(L, -2, "pi");
@@ -761,7 +757,9 @@ LUAMOD_API int luaopen_math (lua_State *L) {
   lua_pushinteger(L, LUA_MININTEGER);
   lua_setfield(L, -2, "mininteger");
   setrandfunc(L);
-*/
   return 1;
 }
+#else
+#include "../ro_mathlib.h"
+#endif
 

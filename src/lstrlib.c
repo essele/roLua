@@ -1755,7 +1755,7 @@ static int str_unpack (lua_State *L) {
 
 /* }====================================================== */
 
-
+#ifndef RO_LUA
 static const luaL_Reg strlib[] = {
   {"byte", str_byte},
   {"char", str_char},
@@ -1777,7 +1777,6 @@ static const luaL_Reg strlib[] = {
   {NULL, NULL}
 };
 
-#include "../ro_strlib.h"
 
 
 static void createmetatable (lua_State *L) {
@@ -1793,15 +1792,15 @@ static void createmetatable (lua_State *L) {
   lua_pop(L, 1);  /* pop metatable */
 }
 
-
 /*
 ** Open string library
 */
 LUAMOD_API int luaopen_string (lua_State *L) {
-/*
   luaL_newlib(L, strlib);
   createmetatable(L);
-*/
   return 1;
 }
 
+#else
+#include "../ro_strlib.h"
+#endif

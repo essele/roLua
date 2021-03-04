@@ -70,10 +70,7 @@ TString *find_in_list(const ro_TString *list[], int start,
     char buf[80];
     strncpy(buf, str, len);
     buf[len] = 0;
-    fprintf(stderr, "read_only_string(%s) (len=%zu\n", buf, len);
-
-//    unsigned int end = size-1;     // zero base, and lose the NULL
-////    unsigned int start = 0;
+    //fprintf(stderr, "read_only_string(%s) (len=%zu\n", buf, len);
 
     TString *ts;
 
@@ -81,7 +78,7 @@ TString *find_in_list(const ro_TString *list[], int start,
         unsigned int mid = start + ((end-start)/2);
 
         ts = (TString *)list[mid];
-        fprintf(stderr, "looking at [%s]\n", ts->contents);
+//        fprintf(stderr, "looking at [%s]\n", ts->contents);
 
         // Check strings match first, then use length as decider...
         int cmp = memcmp(ts->contents, str, len);
@@ -90,7 +87,7 @@ TString *find_in_list(const ro_TString *list[], int start,
         }
     
         if (cmp == 0) {
-            fprintf(stderr, "found [%s]\n", ts->contents);
+//            fprintf(stderr, "found [%s]\n", ts->contents);
             return ts;
         }
         if (start == end) break;
@@ -102,7 +99,7 @@ TString *find_in_list(const ro_TString *list[], int start,
         }
     }
     // Not found
-    fprintf(stderr, "string not found\n");
+//    fprintf(stderr, "string not found\n");
     return NULL;
 }
 
@@ -125,8 +122,6 @@ TString *read_only_string(const char *str, size_t len) {
     if (range->start < 0)
         return 0;
 
-    fprintf(stderr, "range is (%d - %d)\n", range->start, range->end);
-
     return find_in_list(ro_tstrings, range->start, range->end, str, len);
 }
 
@@ -134,24 +129,34 @@ TString *read_only_string(const char *str, size_t len) {
  * Process the data hidden in the TString and set the value as required
  */
 void prepare_return(StkId ra, TString *ts) {
-    if (ro_has_func(ts)) {
+    switch(ts->hash) {
+    
+    case LUA_VCCL:
         setfvalue(s2v(ra), ro_func(ts));
         fprintf(stderr, "returning function\n");
-    } else if (ro_has_table(ts)) {
-        // sethvalue() (our own version)
+        break;
+    case LUA_TTABLE:
         val_(s2v(ra)).gc = obj2gco(ro_table(ts));
         settt_(s2v(ra), ctb(LUA_VTABLE));
-        //sethvalue(s2v(ra), ro_table(ts));
         fprintf(stderr, "returning table\n");
-    } else if (ro_has_float(ts)) {
+        break;
+    case LUA_VNUMFLT:
         setfltvalue(s2v(ra), ro_float(ts));
         fprintf(stderr, "returning float\n");
-    } else if (ro_has_int(ts)) {
+        break;
+    case LUA_VNUMINT:
         setivalue(s2v(ra), ro_int(ts));
         fprintf(stderr, "returning int\n");
-    } else {
+        break;
+    case LUA_VSHRSTR:
+        val_(s2v(ra)).gc = obj2gco(ro_string(ts));
+        settt_(s2v(ra), ctb(LUA_VSHRSTR));
+        fprintf(stderr, "returning string\n");
+        break;
+    default:
         fprintf(stderr, "not found\n");
         setnilvalue(s2v(ra));
+        break;
     }
 }
 
@@ -297,6 +302,8 @@ int main(int argc, char ** argv) {
             "print(string);"
             "print(string.upper);"
             "print(string.upper('Lee Essen'));"
+            "print(_VERSION);"
+            "print(_G);"
             ;
         
 

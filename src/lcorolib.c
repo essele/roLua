@@ -17,6 +17,8 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
+#include "../platform.h"
+
 
 static lua_State *getco (lua_State *L) {
   lua_State *co = lua_tothread(L, 1);
@@ -185,7 +187,7 @@ static int luaB_close (lua_State *L) {
   }
 }
 
-
+#ifndef RO_LUA
 static const luaL_Reg co_funcs[] = {
   {"create", luaB_cocreate},
   {"resume", luaB_coresume},
@@ -198,10 +200,12 @@ static const luaL_Reg co_funcs[] = {
   {NULL, NULL}
 };
 
-
-
 LUAMOD_API int luaopen_coroutine (lua_State *L) {
   luaL_newlib(L, co_funcs);
   return 1;
 }
+
+#else
+#include "../ro_corolib.h"
+#endif
 

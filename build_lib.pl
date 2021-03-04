@@ -76,6 +76,11 @@ sub READ_TOKENS {
 sub READ_WORDS {
     return _READWORDS(shift @_, shift @_, 0);
 }
+sub ADD_WORD {
+    my $word = shift @_;
+    printf(FH_MAIN "const ro_TString ros%03d = ROSTRING(\"${word}\", 0, 0, NULL);\n", $INDEX);
+    add_string($word, $INDEX++);
+}
 
 # ------------------------------------------------------------------------------
 # Reads the strings and functions from the lib source file and stores them in the
@@ -111,18 +116,23 @@ sub ADD_FLOAT {
     my ($name, $item) = @_;
     $LIB{$name} = { "type"=>"float", "item"=>$item };
 }
+sub ADD_STRING {
+    my ($name, $item) = @_;
+    $LIB{$name} = { "type"=>"string", "item"=>$item };
+}
 sub ADD_INT {
     my ($name, $item) = @_;
     $LIB{$name} = { "type"=>"integer", "item"=>$item };
 }
-#sub ADD_TABLE {
-#    my ($name, $item) = @_;
-#    $LIB{$name} = { "type"=>"table", "item"=>$item };
-#}
 sub ADD_GLOBAL_TABLE {
     my ($name, $item) = @_;
     $LIB{$name} = { "type"=>"table", "item"=>$item };
 }
+sub REMOVE_STRING {
+    my $name = shift @_;
+    delete $LIB{$name};
+}
+
 # ------------------------------------------------------------------------------
 # Process an item in a LIB handling the different types and the creation of other
 # objects if needed
@@ -137,6 +147,9 @@ sub process_item {
    
     if ($type eq "LUA_VNUMFLT") {
         printf(FH_LIB "const lua_Number ${cvar}_item = ${item};\n");
+        $item = "&${cvar}_item";
+    } elsif ($type eq "LUA_VSHRSTR") {
+        printf(FH_LIB "const ro_TString ${cvar}_item = ROSTRING(${item}, 0, 0, NULL);\n");
         $item = "&${cvar}_item";
     } elsif ($type eq "LUA_VNUMINT") {
         $item = "(void *)$item";
@@ -281,16 +294,15 @@ sub PROCESS_STRINGS {
         $ranges[$ch]{"start"} = $i;
     }
 
-    my @list = ();
+    my @rr = ();
     for (my $i = 33; $i <= 127; $i++) {
-         push (@list, sprintf("{ .start=%d, .end=%d }", $ranges[$i]{"start"}, $ranges[$i]{"end"}));
-#         printf(FH_MAIN "\{ .start=%d, .end=%d },\n", $ranges[$i]{"start"}, $ranges[$i]{"end"});
+         push (@rr, sprintf("{ .start=%d, .end=%d }", 
+                            $ranges[$i]{"start"}, $ranges[$i]{"end"}));
     }
     printf(FH_MAIN "const ro_range ro_range_lookup[] = {\n");
-    output_string_list(FH_MAIN, @list);
+    output_string_list(FH_MAIN, @rr);
     printf(FH_MAIN "};\n");
 
-    print("total=$count\n");
     printf(FH_MAIN "#define MIN_ROSTRING_LEN (%d)\n", $minlen);
     printf(FH_MAIN "#define MAX_ROSTRING_LEN (%d)\n", $maxlen);
     printf(FH_MAIN "\n");

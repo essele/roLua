@@ -482,7 +482,7 @@ static int luaB_tostring (lua_State *L) {
   return 1;
 }
 
-
+#ifndef RO_LUA
 static const luaL_Reg base_funcs[] = {
   {"assert", luaB_assert},
   {"collectgarbage", luaB_collectgarbage},
@@ -513,14 +513,10 @@ static const luaL_Reg base_funcs[] = {
   {NULL, NULL}
 };
 
-#include "../ro_baselib.h"
-
-
 LUAMOD_API int luaopen_base (lua_State *L) {
-    
   /* open lib into global table */
   lua_pushglobaltable(L);
-//  luaL_setfuncs(L, base_funcs, 0);
+  luaL_setfuncs(L, base_funcs, 0);
   /* set global _G */
   lua_pushvalue(L, -1);
   lua_setfield(L, -2, LUA_GNAME);
@@ -529,4 +525,7 @@ LUAMOD_API int luaopen_base (lua_State *L) {
   lua_setfield(L, -2, "_VERSION");
   return 1;
 }
+#else
+#include "../ro_baselib.h"
+#endif
 
