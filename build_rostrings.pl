@@ -11,10 +11,15 @@ ADD_FLOAT("huge", "(lua_Number)HUGE_VAL");
 ADD_INT("maxinteger", "LUA_MAXINTEGER");
 ADD_INT("mininteger", "LUA_MININTEGER");
 PROCESS_LIB();
+LIB_TABLE();
 
+READ_LIB("strlib", "src/lstrlib.c", "strlib[]");
+PROCESS_LIB();
+LIB_TABLE();
 
 READ_LIB("baselib", "src/lbaselib.c", "base_funcs[]");
-ADD_TABLE("math", "mathlib");
+ADD_GLOBAL_TABLE("math", "mathlib");
+ADD_GLOBAL_TABLE("string", "strlib");
 PROCESS_FINAL();
 
 PROCESS_STRINGS();

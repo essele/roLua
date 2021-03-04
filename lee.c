@@ -106,37 +106,28 @@ TString *find_in_list(const ro_TString *list[], int start,
     return NULL;
 }
 
-static inline int strhash(const char *p, int len) {
-    int h = 0;
-    while (len--) { h += *p++; }
-    return (h & (BUCKETS_ROSTRINGS-1));
-}
-
 /**
  * Specific lookup for read-only strings (called from internshrstr in
  * lstring.c)
  */
 TString *read_only_string(const char *str, size_t len) {
+    // If they don't fit within our length limits...
     if (len < MIN_ROSTRING_LEN || len > MAX_ROSTRING_LEN)
         return NULL;
 
-    // if it's a number it's not for us...
-    if (*str >= '0' && *str <= '9')
+    // We won't have any that are non-printable...
+    if (*str < 33 || *str > 127)
+        return NULL;
+
+    // See if we have a range defined for the first character...
+    const ro_range *range = &ro_range_lookup[(*str)-33];
+
+    if (range->start < 0)
         return 0;
 
-    // Now work out the hash value
-    int hash = strhash(str, len);
-    
-    const ro_hashrange *range = &ro_hash_lookup[hash];
-    // Do we match a valid hash?
-    if (range->start == 255)
-        return 0;
-
-    fprintf(stderr, "hash is %d (%d - %d)\n", hash, range->start, range->end);
+    fprintf(stderr, "range is (%d - %d)\n", range->start, range->end);
 
     return find_in_list(ro_tstrings, range->start, range->end, str, len);
-
-    return find_in_list(ro_tstrings, 0, MAX_ROSTRINGS-1, str, len);
 }
 
 /**
@@ -303,6 +294,9 @@ int main(int argc, char ** argv) {
             "print(collectgarbage('count'));"
             "print(math.huge);"
             "print(math.maxinteger);"
+            "print(string);"
+            "print(string.upper);"
+            "print(string.upper('Lee Essen'));"
             ;
         
 

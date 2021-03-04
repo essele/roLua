@@ -4,7 +4,6 @@ $INDEX = 0;
 %STRINGS = ();
 %LIB = ();
 $LIBNAME = "";
-$BUCKETS = 8;       # Power of 2
 
 %TYPEMAP=(
     "func" => "LUA_VCCL",
@@ -116,7 +115,11 @@ sub ADD_INT {
     my ($name, $item) = @_;
     $LIB{$name} = { "type"=>"integer", "item"=>$item };
 }
-sub ADD_TABLE {
+#sub ADD_TABLE {
+#    my ($name, $item) = @_;
+#    $LIB{$name} = { "type"=>"table", "item"=>$item };
+#}
+sub ADD_GLOBAL_TABLE {
     my ($name, $item) = @_;
     $LIB{$name} = { "type"=>"table", "item"=>$item };
 }
@@ -138,14 +141,15 @@ sub process_item {
     } elsif ($type eq "LUA_VNUMINT") {
         $item = "(void *)$item";
     } elsif ($type eq "LUA_TTABLE") {
-        printf(FH_LIB "extern const ro_TString ro_list_${item};\n");
-        printf(FH_LIB "extern const Table ro_table_${name};\n");
-        printf(FH_LIB "DEFTABLE(ro_table_${name}, &ro_list_${item}, ${count});\n");
-        $item = "&ro_table_${name}";
+        # Always in the main file...
+        printf(FH_MAIN "const ro_TString ros%03d = ROSTRING(\"${name}\", 0, $type, &ro_table_$item);\n", $INDEX);
+        $item = "&${name}";
     }
-    printf(FH_LIB "extern const ro_TString ros%03d;\n", $INDEX);
-    printf(FH_LIB "const ro_TString ros%03d = ROSTRING(\"${name}\", 0, $type, $item);\n", $INDEX);
-    printf(FH_MAIN "extern const ro_TString ros%03d;\n", $INDEX);
+    if ($type ne "LUA_TTABLE") {
+        printf(FH_LIB "extern const ro_TString ros%03d;\n", $INDEX);
+        printf(FH_LIB "const ro_TString ros%03d = ROSTRING(\"${name}\", 0, $type, $item);\n", $INDEX);
+        printf(FH_MAIN "extern const ro_TString ros%03d;\n", $INDEX);
+    }
 }
 
 # ------------------------------------------------------------------------------
@@ -156,13 +160,24 @@ sub output_list {
     my (@list) = @_;
     my $n = 0;
     foreach my $index (@list) {
-#        my $index = $hash{$key}{"index"};
         print($FH "\t") if ($n % 8 == 0);
         printf($FH "&ros%03d, ", $index);
         print($FH "\n") if ($n % 8 == 7);
         $n++;
     }
     print($FH "\n") if ($n % 8 != 0);
+}
+sub output_string_list {
+    my ($FH) = shift @_;
+    my (@list) = @_;
+    my $n = 0;
+    foreach my $entry (@list) {
+        print($FH "\t") if ($n % 3 == 0);
+        printf($FH "%s,", $entry);
+        print($FH "\n") if ($n % 3 == 2);
+        $n++;
+    }
+    print($FH "\n") if ($n % 3 != 0);
 }
 # ------------------------------------------------------------------------------
 # Process the internal LIB structure and produce the outputs in the main file
@@ -182,11 +197,11 @@ sub PROCESS {
         process_item($name);
         add_string($name, $INDEX++, 0);
     }
-    printf (FH_MAIN "\nextern const ro_TString *ro_list_${libname}[];\n");
-    printf (FH_LIB "extern const ro_TString *ro_list_${libname}[];\n");
-    printf (FH_LIB "const ro_TString *ro_list_${libname}[] = {\n");
-    output_list(FH_LIB, map { $LIB{$_}{"index"} } sort keys %LIB);
-    printf (FH_LIB "};\n");
+#    printf (FH_MAIN "\nextern const ro_TString *ro_list_${libname}[];\n");
+#    printf (FH_LIB "extern const ro_TString *ro_list_${libname}[];\n");
+    printf (FH_MAIN "const ro_TString *ro_list_${libname}[] = {\n");
+    output_list(FH_MAIN, map { $LIB{$_}{"index"} } sort keys %LIB);
+    printf (FH_MAIN "};\n");
 }
 
 # ------------------------------------------------------------------------------
@@ -197,7 +212,10 @@ sub PROCESS_LIB {
     PROCESS();
     my $count = keys %LIB;
     my $index = $INDEX++;
-#    printf(FH_MAIN "\nDEFTABLE(ro_table_${LIBNAME}, ro_list_${LIBNAME}, ${count});\n");
+}
+sub LIB_TABLE {
+    my $count = keys %LIB;
+    printf(FH_MAIN "\nDEFTABLE(ro_table_${LIBNAME}, ro_list_${LIBNAME}, ${count});\n");
 }
 
 # ------------------------------------------------------------------------------
@@ -240,37 +258,39 @@ sub hashsort ($$) {
 sub PROCESS_STRINGS {
     my $count = keys %STRINGS;
     my ($minlen, $maxlen) = minmax(keys %STRINGS);
-    my @indexes = map { $STRINGS{$_}{"index"} } sort hashsort keys %STRINGS;
-    my @list = sort hashsort keys %STRINGS;
+    my @indexes = map { $STRINGS{$_}{"index"} } sort keys %STRINGS;
+    my @list = sort keys %STRINGS;
 
     printf (FH_MAIN "\nstatic const ro_TString *ro_tstrings[] = {\n");
     output_list(FH_MAIN, @indexes);
     printf (FH_MAIN "};\n");
 
-    # We know the list is now sorted by bucket and then alpha, so we now need
-    # to work out where each bucket starts. 255 means not used. We can go through
-    # the list backwards to achieve this.
-    my $ranges = ();
-    for (my $b = 0; $b < $BUCKETS; $b++) { $ranges[$b] = { "start"=> 255, "end"=> 255 }; }
+    # Let's build a start/end mechanism for the first character is each word, it will
+    # be a little inefficient for all the __xxx words, but is nice and simple and should
+    # speed up detection of things that aren't in the list.
+    my @ranges = ();
+    for (my $i = 33; $i <= 127; $i++) { $ranges[$i] = { "start"=>-1, "end"=>-1 }; }
     for (my $i=0; $i <= $#list; $i++) {
-        my $hash = strhash($list[$i]);
-        $ranges[$hash]{"end"} = $i;
+        my $ch = ord(substr($list[$i], 0, 1));
+        die "INVALID CHAR" if ($ch < 33 or $ch > 127);
+        $ranges[$ch]{"end"} = $i;
     }
     for (my $i=$#list; $i >= 0; $i--) {
-        print("position $i ... item $list[$i] ... hash " . strhash($list[$i])."\n");
-        my $hash = strhash($list[$i]);
-        $ranges[$hash]{"start"} = $i;
+        my $ch = ord(substr($list[$i], 0, 1));
+        die "INVALID CHAR" if ($ch < 33 or $ch > 127);
+        $ranges[$ch]{"start"} = $i;
     }
 
-    printf(FH_MAIN "const ro_hashrange ro_hash_lookup[] = {\n");
-    for (my $b = 0; $b < $BUCKETS; $b++) {
-         printf(FH_MAIN "\t{ .start=%d, .end=%d },\n", $ranges[$b]{"start"}, $ranges[$b]{"end"});
+    my @list = ();
+    for (my $i = 33; $i <= 127; $i++) {
+         push (@list, sprintf("{ .start=%d, .end=%d }", $ranges[$i]{"start"}, $ranges[$i]{"end"}));
+#         printf(FH_MAIN "\{ .start=%d, .end=%d },\n", $ranges[$i]{"start"}, $ranges[$i]{"end"});
     }
+    printf(FH_MAIN "const ro_range ro_range_lookup[] = {\n");
+    output_string_list(FH_MAIN, @list);
     printf(FH_MAIN "};\n");
 
     print("total=$count\n");
-    printf(FH_MAIN "#define BUCKETS_ROSTRINGS (%d)\n", $BUCKETS);
-    printf(FH_MAIN "#define MAX_ROSTRINGS (%d)\n", $count);
     printf(FH_MAIN "#define MIN_ROSTRING_LEN (%d)\n", $minlen);
     printf(FH_MAIN "#define MAX_ROSTRING_LEN (%d)\n", $maxlen);
     printf(FH_MAIN "\n");

@@ -25,6 +25,7 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
+#include "../platform.h"
 
 /*
 ** maximum number of captures that a pattern can do during
@@ -1776,6 +1777,8 @@ static const luaL_Reg strlib[] = {
   {NULL, NULL}
 };
 
+#include "../ro_strlib.h"
+
 
 static void createmetatable (lua_State *L) {
   /* table to be metatable for strings */
@@ -1795,8 +1798,10 @@ static void createmetatable (lua_State *L) {
 ** Open string library
 */
 LUAMOD_API int luaopen_string (lua_State *L) {
+/*
   luaL_newlib(L, strlib);
   createmetatable(L);
+*/
   return 1;
 }
 

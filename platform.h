@@ -47,10 +47,10 @@ typedef struct ro_TString {
 /**
  * Helper type for the hash lookup table
  */
-typedef struct ro_hashrange {
-    int start;
-    int end;
-} ro_hashrange;
+typedef struct ro_range {
+    int16_t start;
+    int16_t end;
+} __attribute__((packed)) ro_range;
 
 /**
  * Some macros to provide our overloaded access to the TString structure
