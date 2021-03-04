@@ -33,7 +33,7 @@
 
 #include "lualib.h"
 #include "lauxlib.h"
-#include "../platform.h"
+#include "lro.h"
 
 /*
 ** these libs are loaded by lua.c and are readily available to any Lua
@@ -65,6 +65,7 @@ LUALIB_API void luaL_openlibs (lua_State *L) {
 }
 #else
 LUALIB_API void luaL_openlibs (lua_State *L) {
+    (void)L;
 }    
 #endif
 

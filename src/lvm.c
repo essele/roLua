@@ -30,8 +30,7 @@
 #include "ltm.h"
 #include "lvm.h"
 
-// roLua
-#include "../platform.h"
+#include "lro.h"
 
 
 /*

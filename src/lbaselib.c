@@ -20,7 +20,7 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-#include "../platform.h"
+#include "lro.h"
 
 
 static int luaB_print (lua_State *L) {
@@ -526,6 +526,6 @@ LUAMOD_API int luaopen_base (lua_State *L) {
   return 1;
 }
 #else
-#include "../ro_baselib.h"
+#include "ro_baselib.h"
 #endif
 

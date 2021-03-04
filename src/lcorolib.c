@@ -17,7 +17,7 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-#include "../platform.h"
+#include "lro.h"
 
 
 static lua_State *getco (lua_State *L) {
@@ -206,6 +206,6 @@ LUAMOD_API int luaopen_coroutine (lua_State *L) {
 }
 
 #else
-#include "../ro_corolib.h"
+#include "ro_corolib.h"
 #endif
 

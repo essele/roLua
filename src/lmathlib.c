@@ -21,11 +21,11 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
+#include "lro.h"
 
 #undef PI
 #define PI	(l_mathop(3.141592653589793238462643383279502884))
 
-#include "../platform.h"
 
 static int math_abs (lua_State *L) {
   if (lua_isinteger(L, 1)) {
@@ -760,6 +760,6 @@ LUAMOD_API int luaopen_math (lua_State *L) {
   return 1;
 }
 #else
-#include "../ro_mathlib.h"
+#include "ro_mathlib.h"
 #endif
 

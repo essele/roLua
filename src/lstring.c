@@ -22,7 +22,7 @@
 #include "lstring.h"
 
 #include <stdio.h>
-#include "../platform.h"
+#include "lro.h"
 
 /*
 ** Maximum size for string table.

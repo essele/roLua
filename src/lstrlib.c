@@ -25,7 +25,7 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-#include "../platform.h"
+#include "lro.h"
 
 /*
 ** maximum number of captures that a pattern can do during
@@ -1802,5 +1802,5 @@ LUAMOD_API int luaopen_string (lua_State *L) {
 }
 
 #else
-#include "../ro_strlib.h"
+#include "ro_strlib.h"
 #endif

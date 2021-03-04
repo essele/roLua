@@ -19,7 +19,7 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-#include "../platform.h"
+#include "lro.h"
 
 /*
 ** Operations that an object must define to mimic a table
@@ -426,6 +426,6 @@ LUAMOD_API int luaopen_table (lua_State *L) {
   return 1;
 }
 #else
-#include "../ro_tablib.h"
+#include "ro_tablib.h"
 #endif
 

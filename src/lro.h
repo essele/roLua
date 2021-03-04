@@ -1,41 +1,29 @@
 /**
- * Specific include file to support the small number of platform specific
- * needs.
- *
- * Currently:
- *
- * 1. Be able to identify whether an item (void *) is in read-only memory
- *    or not.
- *
+ * Include file needed to support read-only capabilities for strings and
+ * tables.
  */
 
-#ifndef platform_h
-#define platform_h
+#ifndef lro_h
+#define lro_h
 
-#include "src/lapi.h"
-#include "src/lauxlib.h"
+#include "lapi.h"
+#include "lauxlib.h"
 
 /*
- * Define RO_LUA in order to have low memory usage
+ * Define RO_LUA in order to have low memory usage (for easy switching on
+ * and off)
  */
 #define RO_LUA
-
-/*
- * Hack for x86 since we don't actually have any read-only memory
- */
-
-extern void *read_only_list[];
-int is_read_only(void *p);
 
 /**
  * Read-only strings... this needs to be redefined so that we can include the
  * full content in the structure in the rom image.
  *
- * We overload this to support pointing to both functions and tables for the 
- * global search use case (hext is the pointer, and marked is the type.)
+ * We overload this to support pointing to both functions and other object for
+ * the global search use case (hext is the pointer, and hash is the type.)
  *
- * We can't just point to an object since a C function is just a pointer and
- * there's no tt value we can lookup.
+ * For functions hext points to the func, ints are cast into the pointer and
+ * for everything else we point to a suitable object (or float)
  */
 typedef struct ro_TString {
     CommonHeader;
@@ -50,14 +38,6 @@ typedef struct ro_TString {
 } ro_TString;
 
 /**
- * Helper type for the hash lookup table
- */
-typedef struct ro_range {
-    int16_t start;
-    int16_t end;
-} __attribute__((packed)) ro_range;
-
-/**
  * Some macros to provide our overloaded access to the TString structure
  */
 #define ro_func(o)      ((void *)((o)->u.hnext))
@@ -67,8 +47,18 @@ typedef struct ro_range {
 #define ro_int(o)       ((LUA_INTEGER)((o)->u.hnext))
 
 /**
+ * Helper type to speed up the binary search by limiting to the range of
+ * items with a matching first char, also rules out any char not contained
+ * in the word list.
+ */
+typedef struct ro_range {
+    int16_t start;
+    int16_t end;
+} __attribute__((packed)) ro_range;
+
+/**
  * Our read-only strings are built by a perl script and written into the
- * ro_main.h file, which we include here.
+ * ro_<name>.h files.
  */
 #define ROSTRING(s, tok, ttt, item) \
     { .next = NULL, .tt = LUA_VSHRSTR, .hash = ttt, \
@@ -83,11 +73,19 @@ typedef struct ro_range {
     const Table name = { \
         .flags = 0, .alimit = count, .node = (void *)list };
 
-
+/**
+ * Used by lvm.c -> OP_GETFIELD
+ */
 int read_only_lookup(StkId ra, TValue *t, TValue *f);
 
+/**
+ * Used by lvm.c -> OP_GETTABUP
+ */
 int global_lookup(StkId ra, char *key);
 
+/**
+ * Used by lstring.c -> internshrstr
+ */
 TString *read_only_string(const char *str, size_t len);
 
 #endif

@@ -20,7 +20,7 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-#include "../platform.h"
+#include "lro.h"
 
 
 #define MAXUNICODE	0x10FFFFu
@@ -289,5 +289,5 @@ LUAMOD_API int luaopen_utf8 (lua_State *L) {
   return 1;
 }
 #else
-#include "../ro_utf8lib.h"
+#include "ro_utf8lib.h"
 #endif
