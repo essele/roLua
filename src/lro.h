@@ -89,6 +89,7 @@ int read_only_lookup(StkId ra, TValue *t, TValue *f);
 
 TValue *ro_table_lookup(Table *table, TString *key);
 
+TValue *global_ro_lookup(TString *key);
 /**
  * Used by lvm.c -> OP_GETTABUP
  */

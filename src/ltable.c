@@ -726,17 +726,17 @@ const TValue *luaH_getint (Table *t, lua_Integer key) {
 */
 const TValue *luaH_getshortstr (Table *t, TString *key) {
   // roLua
+  fprintf(stderr, "getshortstr (key=%s)-- table=%p (tt=%d marked=%d)\n", getstr(key), t,
+            t->tt, t->marked);
   if (is_obj_ro(t))
     return ro_table_lookup(t, key);
 
   if (is_global_table(t)) {
+    TValue *tv = global_ro_lookup(key);
+    if (tv)
+        return tv;
   }
-  fprintf(stderr, "getshortstr (key=%s)-- table=%p (tt=%d marked=%d)\n", getstr(key), t,
-            t->tt, t->marked);
-  if (is_obj_ro(t)) {
-    return ro_table_lookup(t, key);
-  }
-
+  // end roLua
   
 
   Node *n = hashstr(t, key);

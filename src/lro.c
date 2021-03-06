@@ -133,10 +133,7 @@ void prepare_return(StkId ra, TString *ts) {
     }
 }
 
-/**
- * Lookup for globals (called from lvm.c). We need to search baselib and
- * then look for specific library tables.
- */
+
 int global_lookup(StkId ra, char *key) {
 
     // too short or too long...
@@ -154,6 +151,54 @@ int global_lookup(StkId ra, char *key) {
     return 1;
 }
 
+void prepare_ro_value(TString *ts, TValue *tv) {
+    if (!ts) {
+        setnilvalue(tv);
+        return;
+    }
+
+    switch(ts->hash) {
+    case LUA_VCCL:
+        setfvalue(tv, ro_func(ts));
+        break;
+    case LUA_TTABLE:
+        val_(tv).gc = obj2gco(ro_table(ts));
+        settt_(tv, ctb(LUA_TTABLE));
+        break;
+    case LUA_VNUMFLT:
+        setfltvalue(tv, ro_float(ts));
+        break;
+    case LUA_VNUMINT:
+        setivalue(tv, ro_int(ts));
+        break;
+    case LUA_VSHRSTR:
+        val_(tv).gc = obj2gco(ro_string(ts));
+        settt_(tv, ctb(LUA_VSHRSTR));
+        break;
+    default:
+        setnilvalue(tv);
+        break;
+    }
+    return;
+}
+
+/**
+ * Lookup for globals (called from lvm.c). We need to search baselib and
+ * then look for specific library tables.
+ */
+TValue *global_ro_lookup(TString *key) {
+    // HORRIBLE use of a static TValue, need to fix this
+    static TValue   tv;
+    char            *k = getstr(key);
+    size_t          len = strlen(k);
+
+    if (len < MIN_BASELIB_LEN || len > MAX_BASELIB_LEN)
+        return 0;
+
+    TString *ts = find_in_list(ro_list_baselib, 0, MAX_BASELIB-1, k, len);
+    prepare_ro_value(ts, &tv);
+    return &tv;
+}
 
 
 /**
@@ -180,6 +225,9 @@ TValue *ro_table_lookup(Table *table, TString *key) {
     TString *ts = find_in_list((const ro_TString **)reg, 0, count-1, k, strlen(k));
     fprintf(stderr, "ROT: find_in_list found %p\n", (void *)ts);
 
+    prepare_ro_value(ts, &tv);
+    return &tv;
+    /*
     if (!ts) {
         setnilvalue(&tv);
         return &tv;
@@ -208,5 +256,6 @@ TValue *ro_table_lookup(Table *table, TString *key) {
         break;
     }
     return &tv;
+    */
 }
 

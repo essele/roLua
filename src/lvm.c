@@ -1218,30 +1218,11 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         TValue *rc = KC(i);
         TString *key = tsvalue(rc);  /* key must be a string */
 
-
-        // See if we are looking at this globals table
-        // it also needs to be a string key otherwise we don't need
-        Table *reg = hvalue(&G(L)->l_registry);
-        const TValue *gt = luaH_getint(reg, LUA_RIDX_GLOBALS);
-
-        fprintf(stderr, "GETTABUP -- upval=%p globs=%p\n",
-                    hvalue(upval), hvalue(gt));
-
-        // roLua -- here
-        if (global_lookup(ra, svalue(rc))) {
-            // we found it
-            
-        } else {
-
-
         if (luaV_fastget(L, upval, key, slot, luaH_getshortstr)) {
           setobj2s(L, ra, slot);
         }
         else
           Protect(luaV_finishget(L, upval, rc, ra, slot));
-
-
-        }
         vmbreak;
       }
       vmcase(OP_GETTABLE) {
