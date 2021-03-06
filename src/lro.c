@@ -98,59 +98,10 @@ TString *read_only_string(const char *str, size_t len) {
 }
 
 
-/**
- * Process the data hidden in the TString and set the value as required
+/*
+ * Prepare a TValue as a return value which will contain what's encoded into
+ * the read-only TString.
  */
-void prepare_return(StkId ra, TString *ts) {
-    switch(ts->hash) {
-    
-    case LUA_VCCL:
-        setfvalue(s2v(ra), ro_func(ts));
-        fprintf(stderr, "returning function\n");
-        break;
-    case LUA_TTABLE:
-        val_(s2v(ra)).gc = obj2gco(ro_table(ts));
-        settt_(s2v(ra), ctb(LUA_VTABLE));
-        fprintf(stderr, "returning table\n");
-        break;
-    case LUA_VNUMFLT:
-        setfltvalue(s2v(ra), ro_float(ts));
-        fprintf(stderr, "returning float\n");
-        break;
-    case LUA_VNUMINT:
-        setivalue(s2v(ra), ro_int(ts));
-        fprintf(stderr, "returning int\n");
-        break;
-    case LUA_VSHRSTR:
-        val_(s2v(ra)).gc = obj2gco(ro_string(ts));
-        settt_(s2v(ra), ctb(LUA_VSHRSTR));
-        fprintf(stderr, "returning string\n");
-        break;
-    default:
-        fprintf(stderr, "not found\n");
-        setnilvalue(s2v(ra));
-        break;
-    }
-}
-
-
-int global_lookup(StkId ra, char *key) {
-
-    // too short or too long...
-    size_t len = strlen(key);
-    if (len < MIN_BASELIB_LEN || len > MAX_BASELIB_LEN)
-        return 0;
-
-    TString *ts = find_in_list(ro_list_baselib, 0, MAX_BASELIB-1, key, len);
-    if (!ts)
-        return 0;
-
-    fprintf(stderr, "hash is %d\n", ts->hash); 
-
-    prepare_return(ra, ts);
-    return 1;
-}
-
 void prepare_ro_value(TString *ts, TValue *tv) {
     if (!ts) {
         setnilvalue(tv);
@@ -183,8 +134,8 @@ void prepare_ro_value(TString *ts, TValue *tv) {
 }
 
 /**
- * Lookup for globals (called from lvm.c). We need to search baselib and
- * then look for specific library tables.
+ * Lookup for globals (called from ltable.c). Should only be called if we are looking
+ * at the global table (marked.)
  */
 TValue *global_ro_lookup(TString *key) {
     // HORRIBLE use of a static TValue, need to fix this
@@ -192,8 +143,10 @@ TValue *global_ro_lookup(TString *key) {
     char            *k = getstr(key);
     size_t          len = strlen(k);
 
-    if (len < MIN_BASELIB_LEN || len > MAX_BASELIB_LEN)
-        return 0;
+    if (len < MIN_BASELIB_LEN || len > MAX_BASELIB_LEN) {
+        setnilvalue(&tv);
+        return &tv;
+    }
 
     TString *ts = find_in_list(ro_list_baselib, 0, MAX_BASELIB-1, k, len);
     prepare_ro_value(ts, &tv);
@@ -202,60 +155,24 @@ TValue *global_ro_lookup(TString *key) {
 
 
 /**
- * Rework of the below to be used in luaV_fastget
+ * Lookup within ro_tables (called from ltable.c)
  */
 TValue *ro_table_lookup(Table *table, TString *key) {
     // HORRIBLE use of a static TValue, need to fix this
     static TValue tv;
 
-    // no need to check if it's a table as that's already done
-    // also don't need to check for ro, that's done too.
-    // also assume the key is a string
-    
     // Locate the table and the size
     luaL_Reg    *reg = (luaL_Reg *)table->node;
     unsigned int count = table->alimit;
 
-    char    *k = getstr(key);
-
-    fprintf(stderr, "ROT: Have pointer to funcs=%p  count=%d\n", (void *)reg, count);
-
     // Now see if we can find the key...
+    char    *k = getstr(key);
+    fprintf(stderr, "ROT: Have pointer to funcs=%p  count=%d\n", (void *)reg, count);
     fprintf(stderr, "ROT: looking for key [%s]\n", k);
     TString *ts = find_in_list((const ro_TString **)reg, 0, count-1, k, strlen(k));
     fprintf(stderr, "ROT: find_in_list found %p\n", (void *)ts);
 
     prepare_ro_value(ts, &tv);
     return &tv;
-    /*
-    if (!ts) {
-        setnilvalue(&tv);
-        return &tv;
-    }
-
-    switch(ts->hash) {
-    case LUA_VCCL:
-        setfvalue(&tv, ro_func(ts));
-        break;
-    case LUA_TTABLE:
-        val_(&tv).gc = obj2gco(ro_table(ts));
-        settt_(&tv, ctb(LUA_TTABLE));
-        break;
-    case LUA_VNUMFLT:
-        setfltvalue(&tv, ro_float(ts));
-        break;
-    case LUA_VNUMINT:
-        setivalue(&tv, ro_int(ts));
-        break;
-    case LUA_VSHRSTR:
-        val_(&tv).gc = obj2gco(ro_string(ts));
-        settt_(&tv, ctb(LUA_VSHRSTR));
-        break;
-    default:
-        setnilvalue(&tv);
-        break;
-    }
-    return &tv;
-    */
 }
 

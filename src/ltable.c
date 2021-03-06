@@ -733,7 +733,7 @@ const TValue *luaH_getshortstr (Table *t, TString *key) {
 
   if (is_global_table(t)) {
     TValue *tv = global_ro_lookup(key);
-    if (tv)
+    if (!isempty(tv))
         return tv;
   }
   // end roLua
