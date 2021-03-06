@@ -41,12 +41,13 @@ TString *find_in_list(const ro_TString *list[], int start,
     char buf[80];
     strncpy(buf, str, len);
     buf[len] = 0;
-    //fprintf(stderr, "read_only_string(%s) (len=%zu\n", buf, len);
+ //   fprintf(stderr, "find_in_list(%s) (len=%zu\n", buf, len);
 
     TString *ts;
 
     while (start <= end) {
         unsigned int mid = start + ((end-start)/2);
+//        fprintf(stderr, "start=%d mid=%d end=%d\n", start, mid, end);
 
         ts = (TString *)list[mid];
 //        fprintf(stderr, "looking at [%s]\n", ts->contents);
@@ -95,6 +96,7 @@ TString *read_only_string(const char *str, size_t len) {
 
     return find_in_list(ro_tstrings, range->start, range->end, str, len);
 }
+
 
 /**
  * Process the data hidden in the TString and set the value as required
@@ -154,66 +156,57 @@ int global_lookup(StkId ra, char *key) {
 
 
 
-
-
 /**
- * TODO: this is called when looking up a field within a table, so if the
- * table is read-only then it's one of our fake ones used for libraries.
- * 
- * We need to decode the *list* from the table, and then use the normal
- * searching function to find the function.
+ * Rework of the below to be used in luaV_fastget
  */
-// Lookup the field in the table...
-int read_only_lookup(StkId ra, TValue *t, TValue *f) {
-    // It needs to be a table...
-    if (!ttistable(t)) return 0;
-   
-    Table   *table = hvalue(t);
+TValue *ro_table_lookup(Table *table, TString *key) {
+    // HORRIBLE use of a static TValue, need to fix this
+    static TValue tv;
 
-    fprintf(stderr, "table lookup key [%s]\n", svalue(f));
-    // It needs to be read only...
-    //if (!is_read_only(table)) return 0;
-    // TODO: see if we ever get a global table here
-
-    // For a normal table the gclist will have a value in, so if it's
-    // zero then it must be a read-only table
-    if (table->gclist) return 0;
-
-    fprintf(stderr, "read only table found\n");
-
-    // Key must be a string... otherwise nil return
-    if (!ttisstring(f)) {
-        fprintf(stderr, "not string key\n");
-        setnilvalue(s2v(ra));
-        return 1;
-    }
-
+    // no need to check if it's a table as that's already done
+    // also don't need to check for ro, that's done too.
+    // also assume the key is a string
+    
     // Locate the table and the size
     luaL_Reg    *reg = (luaL_Reg *)table->node;
     unsigned int count = table->alimit;
 
-    fprintf(stderr, "Have pointer to funcs=%p  count=%d\n", (void *)reg, count);
+    char    *k = getstr(key);
+
+    fprintf(stderr, "ROT: Have pointer to funcs=%p  count=%d\n", (void *)reg, count);
 
     // Now see if we can find the key...
-    char *key = svalue(f);
-    fprintf(stderr, "looking for key [%s]\n", key);
-    //int index = qfind(reg, count, key);
+    fprintf(stderr, "ROT: looking for key [%s]\n", k);
+    TString *ts = find_in_list((const ro_TString **)reg, 0, count-1, k, strlen(k));
+    fprintf(stderr, "ROT: find_in_list found %p\n", (void *)ts);
 
-    TString *ts = find_in_list((const ro_TString **)reg, 0, count, key, strlen(key));
-    fprintf(stderr, "find_in_list found %p\n", (void *)ts);
-    
     if (!ts) {
-        fprintf(stderr, "not found\n");
-        setnilvalue(s2v(ra));
-        return 1;
+        setnilvalue(&tv);
+        return &tv;
     }
-    prepare_return(ra, ts);
-    return 1;
-    setfvalue(s2v(ra), ro_func(ts));
-    fprintf(stderr, "returning function\n");
-    return 1;
 
-    
-
+    switch(ts->hash) {
+    case LUA_VCCL:
+        setfvalue(&tv, ro_func(ts));
+        break;
+    case LUA_TTABLE:
+        val_(&tv).gc = obj2gco(ro_table(ts));
+        settt_(&tv, ctb(LUA_TTABLE));
+        break;
+    case LUA_VNUMFLT:
+        setfltvalue(&tv, ro_float(ts));
+        break;
+    case LUA_VNUMINT:
+        setivalue(&tv, ro_int(ts));
+        break;
+    case LUA_VSHRSTR:
+        val_(&tv).gc = obj2gco(ro_string(ts));
+        settt_(&tv, ctb(LUA_VSHRSTR));
+        break;
+    default:
+        setnilvalue(&tv);
+        break;
+    }
+    return &tv;
 }
 

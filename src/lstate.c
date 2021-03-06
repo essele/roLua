@@ -223,6 +223,8 @@ static void init_registry (lua_State *L, global_State *g) {
   luaH_setint(L, registry, LUA_RIDX_MAINTHREAD, &temp);
   /* registry[LUA_RIDX_GLOBALS] = table of globals */
   sethvalue(L, &temp, luaH_new(L));  /* temp = new table (global table) */
+  // roLua -- mark the global table (use bit 7 of marked)
+  hvalue(&temp)->marked |= 0x80;
   luaH_setint(L, registry, LUA_RIDX_GLOBALS, &temp);
 }
 

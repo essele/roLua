@@ -15,6 +15,15 @@
  */
 #define RO_LUA
 
+/*
+ * Anything that's an object and read-only will have a "next" field that's
+ * zero, where any genuine object will be on the allgc list.
+ *
+ * the global table will be marked using but 7 (normally used for testing)
+ */
+#define is_obj_ro(o)            (!(o)->next)
+#define is_global_table(t)      ((t)->marked & 0x80)
+
 /**
  * Read-only strings... this needs to be redefined so that we can include the
  * full content in the structure in the rom image.
@@ -77,6 +86,8 @@ typedef struct ro_range {
  * Used by lvm.c -> OP_GETFIELD
  */
 int read_only_lookup(StkId ra, TValue *t, TValue *f);
+
+TValue *ro_table_lookup(Table *table, TString *key);
 
 /**
  * Used by lvm.c -> OP_GETTABUP

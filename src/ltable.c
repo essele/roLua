@@ -8,7 +8,7 @@
 #define LUA_CORE
 
 #include "lprefix.h"
-
+#include "lro.h"
 
 /*
 ** Implementation of tables (aka arrays, objects, or hash tables).
@@ -721,8 +721,24 @@ const TValue *luaH_getint (Table *t, lua_Integer key) {
 
 /*
 ** search function for short strings
+**
+** roLua -- checks for read-only or marked (global) and does the appropriate thing
 */
 const TValue *luaH_getshortstr (Table *t, TString *key) {
+  // roLua
+  if (is_obj_ro(t))
+    return ro_table_lookup(t, key);
+
+  if (is_global_table(t)) {
+  }
+  fprintf(stderr, "getshortstr (key=%s)-- table=%p (tt=%d marked=%d)\n", getstr(key), t,
+            t->tt, t->marked);
+  if (is_obj_ro(t)) {
+    return ro_table_lookup(t, key);
+  }
+
+  
+
   Node *n = hashstr(t, key);
   lua_assert(key->tt == LUA_VSHRSTR);
   for (;;) {  /* check whether 'key' is somewhere in the chain */

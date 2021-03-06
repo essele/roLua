@@ -1277,27 +1277,12 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
         TValue *rb = vRB(i);
         TValue *rc = KC(i);
 
-        // roLua
-        if (read_only_lookup(ra, rb, rc)) {
-            // we're ok
-        } else {
-/*
-        if (is_read_only(hvalue(rb))) {
-            fprintf(stderr, "have readonly\n");
-        } else {
-            fprintf(stderr, "not readonly\n");
-        }
-*/
-        // end roLua
-
         TString *key = tsvalue(rc);  /* key must be a string */
         if (luaV_fastget(L, rb, key, slot, luaH_getshortstr)) {
           setobj2s(L, ra, slot);
         }
         else
           Protect(luaV_finishget(L, rb, rc, ra, slot));
-
-        }
         vmbreak;
       }
       vmcase(OP_SETTABUP) {
