@@ -30,6 +30,7 @@
 #include "lundump.h"
 #include "lvm.h"
 
+#include "lro.h"
 
 
 const char lua_ident[] =
@@ -912,6 +913,9 @@ LUA_API int lua_setmetatable (lua_State *L, int objindex) {
   }
   switch (ttype(obj)) {
     case LUA_TTABLE: {
+      // roLua
+      if (is_obj_ro(hvalue(obj))) break;
+      // end roLua
       hvalue(obj)->metatable = mt;
       if (mt) {
         luaC_objbarrier(L, gcvalue(obj), mt);

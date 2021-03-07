@@ -317,6 +317,10 @@ static unsigned int findindex (lua_State *L, Table *t, TValue *key,
 
 
 int luaH_next (lua_State *L, Table *t, StkId key) {
+  // roLua
+  if (is_obj_ro(t))
+    return 0;   /* can't traverse read only tables */
+  // end roLua
   unsigned int asize = luaH_realasize(t);
   unsigned int i = findindex(L, t, s2v(key), asize);  /* find original key */
   for (; i < asize; i++) {  /* try first array part */

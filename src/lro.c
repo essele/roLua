@@ -29,6 +29,16 @@
 #include "ro_main.h"
 
 /**
+ * There are some things we need to do manually...
+ */
+void ro_lua_init(lua_State *L) {
+    // Setup the _G table
+    lua_pushglobaltable(L);
+    lua_pushvalue(L, -1);
+    lua_setfield(L, -2, LUA_GNAME);
+}
+
+/**
  * This routine looks up a string to see if it's one of our pre-populated
  * read-only strings.
  *
@@ -176,3 +186,44 @@ TValue *ro_table_lookup(Table *table, TString *key) {
     return &tv;
 }
 
+/**
+ * Should rework quicksearch to return an index, but this is infrequently used so will
+ * do for now.
+ */
+int slow_find_key(const ro_TString *list[], int count, const char *str, size_t len) {
+    int i = 0;
+    while (i < count) {
+        TString *ts = (TString *)list[i];
+        if (ts->shrlen == len && memcmp(ts->contents, str, len) == 0)
+            return i;
+        i++;
+    }
+    return -1;
+}
+
+/** --- NOTE --- not using this as it's not really needed ---
+ * This is lua_next for a read only table -- key is the key of the last value or
+ * nil on the first entry.
+ */
+int ro_lua_next(lua_State *L, Table *t, StkId key) {
+    int i=0;
+
+    // See if we are the first call (i.e. need index=0)...
+    if (!ttisnil(s2v(key))) {
+        if (!ttisshrstring(s2v(key))) return 0;
+
+        int count = t->alimit;
+        i = slow_find_key((const ro_TString **)t->node, count, svalue(s2v(key)), 
+                                                        tsslen(tsvalue(s2v(key))));
+        if (i < 0) return 0;
+        i++;
+        if (i == count) return 0;
+    }
+    TString *ts = (TString *)((ro_TString **)t->node)[i];
+    TValue tv;
+
+    prepare_ro_value(ts, &tv);
+    setsvalue(L, s2v(key), ts);
+    setobj2s(L, key+1, &tv);
+    return 1;
+}

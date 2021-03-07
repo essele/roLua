@@ -331,6 +331,9 @@ void luaV_finishget (lua_State *L, const TValue *t, TValue *key, StkId val,
 */
 void luaV_finishset (lua_State *L, const TValue *t, TValue *key,
                      TValue *val, const TValue *slot) {
+  // roLua
+  if (is_obj_ro(hvalue(t))) return;
+  // end roLua
   int loop;  /* counter to avoid infinite loops */
   for (loop = 0; loop < MAXTAGLOOP; loop++) {
     const TValue *tm;  /* '__newindex' metamethod */

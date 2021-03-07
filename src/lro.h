@@ -83,6 +83,11 @@ typedef struct ro_range {
         .flags = 0, .alimit = count, .node = (void *)list };
 
 /**
+ * Called from linit.c
+ */
+void ro_lua_init(lua_State *L);
+
+/**
  * Used by lvm.c -> OP_GETFIELD
  */
 int read_only_lookup(StkId ra, TValue *t, TValue *f);
@@ -99,5 +104,7 @@ int global_lookup(StkId ra, char *key);
  * Used by lstring.c -> internshrstr
  */
 TString *read_only_string(const char *str, size_t len);
+
+int ro_lua_next(lua_State *L, Table *t, StkId key);
 
 #endif

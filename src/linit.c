@@ -65,7 +65,7 @@ LUALIB_API void luaL_openlibs (lua_State *L) {
 }
 #else
 LUALIB_API void luaL_openlibs (lua_State *L) {
-    (void)L;
+    ro_lua_init(L);
 }    
 #endif
 
