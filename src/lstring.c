@@ -248,17 +248,14 @@ TString *luaS_new (lua_State *L, const char *str) {
   int j;
   TString **p = G(L)->strcache[i];
   for (j = 0; j < STRCACHE_M; j++) {
-    if (strcmp(str, getstr(p[j])) == 0)  /* hit? */ {
-        fprintf(stderr, "STRING REUSE [%s]\n", str);
+    if (strcmp(str, getstr(p[j])) == 0)  /* hit? */
       return p[j];  /* that is it */
-    }
   }
   /* normal route */
   for (j = STRCACHE_M - 1; j > 0; j--)
     p[j] = p[j - 1];  /* move out last element */
   /* new element is first in the list */
   p[0] = luaS_newlstr(L, str, strlen(str));
-    fprintf(stderr, "NEW STRING [%s]\n", str);
   return p[0];
 }
 

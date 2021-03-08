@@ -74,7 +74,6 @@ void luaX_init (lua_State *L) {
   TString *e = luaS_newliteral(L, LUA_ENV);  /* create env name */
   luaC_fix(L, obj2gco(e));  /* never collect this name */
   for (i=0; i<NUM_RESERVED; i++) {
-    fprintf(stderr, "REGISTER TOKEN: [%s] num=%d\n", luaX_tokens[i], i+1);
     TString *ts = luaS_new(L, luaX_tokens[i]);
         if (ts->extra == 0) {
     luaC_fix(L, obj2gco(ts));  /* reserved words are never collected */

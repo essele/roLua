@@ -14,7 +14,6 @@
 
 #include "lua.h"
 
-
 /* global table */
 #define LUA_GNAME	"_G"
 

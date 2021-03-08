@@ -177,10 +177,10 @@ TValue *ro_table_lookup(Table *table, TString *key) {
 
     // Now see if we can find the key...
     char    *k = getstr(key);
-    fprintf(stderr, "ROT: Have pointer to funcs=%p  count=%d\n", (void *)reg, count);
-    fprintf(stderr, "ROT: looking for key [%s]\n", k);
+//    fprintf(stderr, "ROT: Have pointer to funcs=%p  count=%d\n", (void *)reg, count);
+//    fprintf(stderr, "ROT: looking for key [%s]\n", k);
     TString *ts = find_in_list((const ro_TString **)reg, 0, count-1, k, strlen(k));
-    fprintf(stderr, "ROT: find_in_list found %p\n", (void *)ts);
+//    fprintf(stderr, "ROT: find_in_list found %p\n", (void *)ts);
 
     prepare_ro_value(ts, &tv);
     return &tv;
