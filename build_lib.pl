@@ -152,7 +152,8 @@ sub process_item {
         printf(FH_LIB "const ro_TString ${cvar}_item = ROSTRING(${item}, 0, 0, NULL);\n");
         $item = "&${cvar}_item";
     } elsif ($type eq "LUA_VNUMINT") {
-        $item = "(void *)$item";
+        printf(FH_LIB "const lua_Integer ${cvar}_item = ${item};\n");
+        $item = "&${cvar}_item";
     } elsif ($type eq "LUA_TTABLE") {
         # Always in the main file...
         printf(FH_MAIN "const ro_TString ros%03d = ROSTRING(\"${name}\", 0, $type, &ro_table_$item);\n", $INDEX);

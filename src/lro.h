@@ -53,7 +53,7 @@ typedef struct ro_TString {
 #define ro_table(o)     ((Table *)((o)->u.hnext))
 #define ro_float(o)     (*(lua_Number *)((o)->u.hnext))
 #define ro_string(o)    ((TString *)((o)->u.hnext))
-#define ro_int(o)       ((LUA_INTEGER)((o)->u.hnext))
+#define ro_int(o)       (*(lua_Integer *)((o)->u.hnext))
 
 /**
  * Helper type to speed up the binary search by limiting to the range of
