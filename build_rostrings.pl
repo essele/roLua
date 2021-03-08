@@ -41,9 +41,9 @@ LIB_TABLE();
 #
 # lcorolib
 #
-READ_LIB("corolib", "src/lcorolib.c", "co_funcs[]");
-PROCESS_LIB();
-LIB_TABLE();
+#READ_LIB("corolib", "src/lcorolib.c", "co_funcs[]");
+#PROCESS_LIB();
+#LIB_TABLE();
 
 #
 # ltablib
@@ -55,17 +55,17 @@ LIB_TABLE();
 #
 # lutf8lib
 #
-READ_LIB("utf8lib", "src/lutf8lib.c", "funcs[]");
-ADD_STRING("charpattern", UTF8PATT);
-PROCESS_LIB();
-LIB_TABLE();
+#READ_LIB("utf8lib", "src/lutf8lib.c", "funcs[]");
+#ADD_STRING("charpattern", UTF8PATT);
+#PROCESS_LIB();
+#LIB_TABLE();
 
 #
 # ldblib
 #
-READ_LIB("dblib", "src/ldblib.c", "dblib[]");
-PROCESS_LIB();
-LIB_TABLE();
+#READ_LIB("dblib", "src/ldblib.c", "dblib[]");
+#PROCESS_LIB();
+#LIB_TABLE();
 
 #
 # lbaselib is mostly handled as normal, the _G entry will not be

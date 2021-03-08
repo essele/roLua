@@ -211,9 +211,7 @@ sub PROCESS {
         process_item($name);
         add_string($name, $INDEX++, 0);
     }
-#    printf (FH_MAIN "\nextern const ro_TString *ro_list_${libname}[];\n");
-#    printf (FH_LIB "extern const ro_TString *ro_list_${libname}[];\n");
-    printf (FH_MAIN "const ro_TString *ro_list_${libname}[] = {\n");
+    printf (FH_MAIN "const ro_TString * const ro_list_${libname}[] = {\n");
     output_list(FH_MAIN, map { $LIB{$_}{"index"} } sort keys %LIB);
     printf (FH_MAIN "};\n");
 }
@@ -275,7 +273,7 @@ sub PROCESS_STRINGS {
     my @indexes = map { $STRINGS{$_}{"index"} } sort keys %STRINGS;
     my @list = sort keys %STRINGS;
 
-    printf (FH_MAIN "\nstatic const ro_TString *ro_tstrings[] = {\n");
+    printf (FH_MAIN "\nstatic const ro_TString * const ro_tstrings[] = {\n");
     output_list(FH_MAIN, @indexes);
     printf (FH_MAIN "};\n");
 
