@@ -229,6 +229,10 @@ typedef struct luaL_Stream {
 ** ===================================================================
 */
 
+#define lua_writestring(s,l)   fwrite((s), sizeof(char), (l), stdout)
+#define lua_writeline()        (lua_writestring("\n", 1))
+#define lua_writestringerror(s,p)   fprintf(stderr, (s), (p))
+
 /* print a string */
 #if !defined(lua_writestring)
 #define lua_writestring(s,l)   fwrite((s), sizeof(char), (l), stdout)

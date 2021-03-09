@@ -206,6 +206,6 @@ LUAMOD_API int luaopen_coroutine (lua_State *L) {
 }
 
 #else
-#include "ro_corolib.h"
+//#include "ro_corolib.h"
 #endif
 

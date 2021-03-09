@@ -289,5 +289,5 @@ LUAMOD_API int luaopen_utf8 (lua_State *L) {
   return 1;
 }
 #else
-#include "ro_utf8lib.h"
+//#include "ro_utf8lib.h"
 #endif
