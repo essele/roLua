@@ -27,8 +27,8 @@
 #include "ro_mathlib.h"
 #include "ro_strlib.h"
 #include "ro_tablib.h"
-#include "ro_utf8lib.h"
-#include "ro_corolib.h"
+//#include "ro_utf8lib.h"
+//#include "ro_corolib.h"
 #include "ro_baselib.h"
 #include "ro_main.h"
 

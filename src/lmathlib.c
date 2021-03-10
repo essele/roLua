@@ -763,6 +763,10 @@ LUAMOD_API int luaopen_math (lua_State *L) {
 }
 #else
 #include "ro_mathlib.h"
+    
+void notused() {
+    (void)setrandfunc;
+}
 #endif
 
 #endif   // LUA_EXC_MATHLIB

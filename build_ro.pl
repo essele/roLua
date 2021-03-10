@@ -17,7 +17,7 @@ READ_STRINGS("src/ltm.c", "luaT_eventname[]");
 READ_LIB("mathlib", "src/lmathlib.c", "mathlib[]");
 REMOVE("random");
 REMOVE("randomseed");
-SET("huge", "int", "(lua_Number)HUGE_VAL");
+SET("huge", "num", "(lua_Number)HUGE_VAL");
 SET("maxinteger", "int", "LUA_MAXINTEGER");
 SET("mininteger", "int", "LUA_MININTEGER");
 SET("pi", "num", "PI");
