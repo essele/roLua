@@ -22,7 +22,6 @@
 
 #include "lro.h"
 
-
 static int luaB_print (lua_State *L) {
   int n = lua_gettop(L);  /* number of arguments */
   int i;

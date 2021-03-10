@@ -19,7 +19,6 @@
 
 #include "lro.h"
 
-
 static lua_State *getco (lua_State *L) {
   lua_State *co = lua_tothread(L, 1);
   luaL_argexpected(L, co, 1, "thread");
@@ -206,6 +205,5 @@ LUAMOD_API int luaopen_coroutine (lua_State *L) {
 }
 
 #else
-//#include "ro_corolib.h"
+#include "ro_corolib.h"
 #endif
-

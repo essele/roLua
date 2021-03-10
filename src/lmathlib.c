@@ -23,6 +23,8 @@
 
 #include "lro.h"
 
+#ifndef LUA_EXC_MATHLIB
+
 #undef PI
 #define PI	(l_mathop(3.141592653589793238462643383279502884))
 
@@ -763,3 +765,4 @@ LUAMOD_API int luaopen_math (lua_State *L) {
 #include "ro_mathlib.h"
 #endif
 
+#endif   // LUA_EXC_MATHLIB

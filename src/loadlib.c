@@ -23,7 +23,6 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-
 /*
 ** LUA_IGMARK is a mark to ignore all before it when building the
 ** luaopen_ function name.
@@ -756,4 +755,3 @@ LUAMOD_API int luaopen_package (lua_State *L) {
   lua_pop(L, 1);  /* pop global table */
   return 1;  /* return 'package' table */
 }
-

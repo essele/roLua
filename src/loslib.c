@@ -21,7 +21,6 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-
 /*
 ** {==================================================================
 ** List of valid conversion specifiers for the 'strftime' function;
@@ -427,4 +426,3 @@ LUAMOD_API int luaopen_os (lua_State *L) {
   luaL_newlib(L, syslib);
   return 1;
 }
-

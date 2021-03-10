@@ -22,9 +22,6 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-
-
-
 /*
 ** Change this macro to accept other modes for 'fopen' besides
 ** the standard ones.
@@ -818,4 +815,3 @@ LUAMOD_API int luaopen_io (lua_State *L) {
   createstdfile(L, stderr, NULL, "stderr");
   return 1;
 }
-

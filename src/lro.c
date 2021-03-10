@@ -11,7 +11,28 @@
 
 #include <stdlib.h>
 #include <string.h>
+
+#include "lua.h"
 #include "lro.h"
+
+
+
+/*==========================================================================
+ * Include the relevant definitions from the various libraries that we need
+ * to include... if we include them here then they will add to the rom
+ * size. If we don't put them here then they aren't included at all.
+ *==========================================================================
+ */
+#undef LUA_LIB                  // Make sure we get the right defs.
+#include "ro_mathlib.h"
+#include "ro_strlib.h"
+#include "ro_tablib.h"
+#include "ro_utf8lib.h"
+#include "ro_corolib.h"
+#include "ro_baselib.h"
+#include "ro_main.h"
+
+#define MAX_BASELIB             (sizeof(ro_list_baselib)/(sizeof(void *)))
 
 /*==========================================================================
  *
@@ -26,7 +47,7 @@
  *==========================================================================
  */
 
-#include "ro_main.h"
+#ifdef RO_LUA
 
 /**
  * There are some things we need to do manually...
@@ -46,7 +67,7 @@ void ro_lua_init(lua_State *L) {
  * need some kind of hashing to speed this up further as the numbers
  * increase.
  */
-TString *find_in_list(const ro_TString *list[], int start,
+TString *find_in_list(const ro_TString * const list[], int start,
                                 int end, const char *str, size_t len) {
     char buf[80];
     strncpy(buf, str, len);
@@ -104,7 +125,7 @@ TString *read_only_string(const char *str, size_t len) {
     if (range->start < 0)
         return 0;
 
-    return find_in_list(ro_tstrings, range->start, range->end, str, len);
+    return find_in_list(ro_list_tstrings, range->start, range->end, str, len);
 }
 
 
@@ -190,7 +211,7 @@ TValue *ro_table_lookup(Table *table, TString *key) {
  * Should rework quicksearch to return an index, but this is infrequently used so will
  * do for now.
  */
-int slow_find_key(const ro_TString *list[], int count, const char *str, size_t len) {
+int slow_find_key(const TString *list[], int count, const char *str, size_t len) {
     int i = 0;
     while (i < count) {
         TString *ts = (TString *)list[i];
@@ -213,13 +234,13 @@ int ro_lua_next(lua_State *L, Table *t, StkId key) {
         if (!ttisshrstring(s2v(key))) return 0;
 
         int count = t->alimit;
-        i = slow_find_key((const ro_TString **)t->node, count, svalue(s2v(key)), 
+        i = slow_find_key((const TString **)t->node, count, svalue(s2v(key)), 
                                                         tsslen(tsvalue(s2v(key))));
         if (i < 0) return 0;
         i++;
         if (i == count) return 0;
     }
-    TString *ts = (TString *)((ro_TString **)t->node)[i];
+    TString *ts = (TString *)((TString **)t->node)[i];
     TValue tv;
 
     prepare_ro_value(ts, &tv);
@@ -227,3 +248,5 @@ int ro_lua_next(lua_State *L, Table *t, StkId key) {
     setobj2s(L, key+1, &tv);
     return 1;
 }
+
+#endif

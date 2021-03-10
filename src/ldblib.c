@@ -481,6 +481,5 @@ LUAMOD_API int luaopen_debug (lua_State *L) {
   return 1;
 }
 #else
-//#include "ro_dblib.h"
+#include "ro_dblib.h"
 #endif
-
